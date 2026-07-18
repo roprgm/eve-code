@@ -1,0 +1,32 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "web": {
+      "root": ".",
+      "framework": "vite",
+      "devCommand": "vite",
+      "buildCommand": "npx convex deploy --cmd 'npm run build' --cmd-url-env-var-name VITE_CONVEX_URL",
+      "rewrites": [
+        {
+          "source": "/(.*)",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    "eve": {
+      "root": ".",
+      "framework": "eve",
+      "buildCommand": "npx convex deploy --cmd 'npm run build:eve' --cmd-url-env-var-name VITE_CONVEX_URL"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/eve/(.*)",
+      "destination": { "service": "eve" }
+    },
+    {
+      "source": "/(.*)",
+      "destination": { "service": "web" }
+    }
+  ]
+}

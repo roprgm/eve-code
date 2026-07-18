@@ -31,6 +31,8 @@ bun run dev
 
 Set `AI_GATEWAY_API_KEY` and `EVE_HOOK_SECRET` as described in `.env.example`.
 `vercel deploy` ships both services; their wiring is declared in `vercel.json`.
+On Vercel, Convex provisions in one step with `vercel integration add convex`,
+and no AI Gateway key is needed — eve authenticates with the project's OIDC.
 
 ## Development
 

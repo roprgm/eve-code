@@ -27,11 +27,11 @@ Browser (Vite + React)
    │  durable turn stream
    ▼
 Eve (Vercel service)
-   │  chat = one durable Eve session (one chat per project today)
+   │  session = one durable Eve session (one per project today)
    │  built-in sandbox tools ──▶ Vercel Sandbox (via Eve's sandbox, 1 per session)
    │                                │            │
    ▼ checkpoint hook                ▼            ▼
-Convex (projects, chats,        dev server    sandbox-server
+Convex (projects, sessions,     dev server    sandbox-server
         turns)                  (opens in     (terminal WS,
                                  a new tab)    zip export)
 ```
@@ -40,11 +40,12 @@ Convex (projects, chats,        dev server    sandbox-server
 
 1. **Eve first.** Between two designs, the one built on an Eve primitive wins, even if
    a custom version looks smaller. The framework is the product being shown.
-2. **A chat is a durable Eve session.** One session gives us the conversation, the
-   sandbox, per-session state, and turn serialization — no locks, no session
-   bookkeeping of ours. A project groups chats and owns what they share: the name
-   and the preview. Today every project has exactly one chat, created with it — the
-   UI offers no way to add more, but nothing in the data assumes there is one.
+2. **A session is a durable Eve session.** Ours and Eve's are deliberately the
+   same concept — one durable session carries the conversation, the sandbox,
+   per-session state, and turn serialization — no locks, no session bookkeeping of
+   ours. A project groups sessions and owns what they share: the name and the
+   preview. Today every project has exactly one session, created with it — the UI
+   offers no way to add more, but nothing in the data assumes there is one.
 3. **The sandbox is Eve's sandbox.** `defineSandbox` with the `vercel()` backend. The
    template is seeded files under `agent/sandbox/workspace/`; `bootstrap()` installs
    its dependencies once per template build, so every project starts warm, with a dev
@@ -77,16 +78,17 @@ Convex (projects, chats,        dev server    sandbox-server
 
 ```
 projects   name, previewUrl?, updatedAt
-chats      projectId, sessionId, name, status, streamIndex,
+sessions   projectId, sessionId, eveSessionId, status, streamIndex,
            serverUrl?, serverToken?
-turns      chatId, events, searchText, streamIndex, usage
+turns      sessionId, events, searchText, streamIndex, usage
 ```
 
-One chat per project for now, created with the project — and still no turn lock,
-because Eve serializes turns within a session. The split anticipates more chats
-without building them: the preview belongs to the project (one live app, whichever
-sandbox serves it — today its only chat's), while the terminal and zip belong to
-the chat whose sandbox they enter.
+One session per project for now, created with the project — and still no turn
+lock, because Eve serializes turns within a session. `sessionId` is our public id;
+`eveSessionId` is Eve's durable session behind it. The split anticipates more
+sessions without building them: the preview belongs to the project (one live app,
+whichever sandbox serves it — today its only session's), while the terminal and
+zip belong to the session whose sandbox they enter.
 
 `usage` is what the turn cost — model tokens, and sandbox seconds once there is a
 sandbox — written by the checkpoint hook. It is recorded for future analytics;
@@ -146,7 +148,11 @@ plan's phase rules).
 - **Home** — your projects, newest first, and a composer that creates one.
 - **Project** — the conversation beside a workspace: Open app, Files (tree +
   read-only Shiki viewer; CodeMirror later), Terminal, Download zip. All workspace
-  state is read reactively from the project and chat documents in Convex.
+  state is read reactively from the project and session documents in Convex.
+- **Activity** — while the agent works, the conversation shows what it is doing as
+  distinct activities sourced from the stream events — thinking, running a
+  command, reading or editing a file — each with its elapsed time. A single
+  generic "Thinking…" label only exists until tools do (phase 1).
 
 Routes: `/` · `/p/:projectId`.
 
@@ -167,7 +173,7 @@ work is refusing to bypass it:
 - **Warm sandboxes.** `bootstrap()` bakes dependencies into the template build, so a
   new project's sandbox starts seeded and ready instead of running installs.
 - **Lazy heavyweights.** xterm, Shiki, and later CodeMirror load with the tab that
-  needs them, never with the chat. The core bundle stays small because the dependency
+  needs them, never with the conversation. The core bundle stays small because the dependency
   list stays small.
 
 ## Structure and layers
@@ -180,19 +186,19 @@ instead.
 docs/           reference notes (sandbox.md, eve.md) — not code
 agent/          the Eve agent (backend). Imports: lib, convex/_generated. Never UI.
   agent.ts  instructions.md
-  channels/eve.ts  hooks/persist-chat.ts
+  channels/eve.ts  hooks/persist-session.ts
   sandbox/  sandbox.ts  workspace/        ← template + sandbox-server.mjs (seeded)
   subagents/  reviewer/
   tools/  bash.ts  edit-file.ts  start-dev.ts
 convex/         data model and server functions. Imports: lib (pure logic only).
-  schema.ts  projects.ts  chats.ts  persistence.ts
+  schema.ts  projects.ts  persistence.ts
 lib/            shared pure logic: identities, event shapes, stores, utilities.
                 Runs in browser, agent, and Convex alike — so no React, no JSX,
                 no component imports, no business UI. Imports: npm packages, lib.
 components/
   ui/           generic primitives (button, dialog, …). Style-level only: no domain
                 words, no Convex, no app state. Imports: react, lib/utils, ui.
-  chat/         feature components for the conversation.
+  session/      feature components for the conversation.
   workspace/    feature components for the workspace panel.
                 Feature components import: ui, lib, convex/_generated, siblings.
 app/            routes, pages, and wiring (/  /p/:projectId). Imports anything
@@ -213,8 +219,8 @@ Placement rules, by intent:
 
 Module design — how the map grows without rotting:
 
-- **One module per concept, named after it**, kebab-case (`chat-store.ts`,
-  `use-chat-session.ts`). A file that needs "and" to describe itself is two files.
+- **One module per concept, named after it**, kebab-case (`session-runtime.ts`,
+  `use-session.ts`). A file that needs "and" to describe itself is two files.
 - **Split on responsibility, not on size.** A long file with one job stays; a short
   file doing two jobs splits. Never split preemptively.
 - **Extract on the second consumer, not before.** Code starts in the feature that
@@ -222,7 +228,7 @@ Module design — how the map grows without rotting:
   appears. Speculative "shared" modules are how dead layers are born.
 - **Import the module, not a barrel.** No `index.ts` re-exports — every import names
   the exact file it needs, so the dependency graph stays visible in the imports.
-- **Hooks live with their feature** (`components/chat/use-chat-session.ts`), not in
+- **Hooks live with their feature** (`components/session/use-session.ts`), not in
   a global hooks folder.
 - **In `convex/`, one file per resource** (`projects.ts`, `persistence.ts`),
   mutations and queries for that resource together.
@@ -269,18 +275,19 @@ per-turn `usage` record (see Data model), so whichever model wins starts with re
 numbers. Sign-in, ownership, and any enforcement are designed when that decision
 lands, not before.
 
-**Multiple chats per project.** Verified feasible with today's platform
-(docs/sandbox.md): every chat keeps its own Eve sandbox, a project-level sandbox
-runs the single preview, and local git moves the code between them — chats commit,
-the preview sandbox fetches and merges (~270 ms per delta), and a new chat starts
+**Multiple sessions per project.** Verified feasible with today's platform
+(docs/sandbox.md): every session keeps its own Eve sandbox, a project-level sandbox
+runs the single preview, and local git moves the code between them — sessions
+commit, the preview sandbox fetches and merges (~270 ms per delta), and a new
+session starts
 from the warm template plus one pull instead of a clone. No shared filesystem
 exists on the platform, and none is needed: syncing at commit boundaries keeps the
-one live reload coherent while several chats work in parallel. This also sets up
+one live reload coherent while several sessions work in parallel. This also sets up
 local-first git — branches and experiments live only in the sandboxes, and GitHub
 later becomes an optional remote pushed on request. The template gains `git init`
 when this lands; until then the workspace has no repository at all. Open for that
 phase: where the canonical repo lives (a project preview sandbox vs the first
-chat's), and the merge-conflict policy.
+session's), and the merge-conflict policy.
 
 **GitHub.** Parked, designed: the sandbox gains `git` + `gh` in `bootstrap()` and a
 user token via `onSession()` — Eve's credential brokering can keep it at the
@@ -299,5 +306,3 @@ and approvals, sandbox definition, channel auth, custom channels).
 ## Open questions
 
 - File tree freshness: refetch after each turn (v1) vs a watcher in the sandbox.
-- Frontend binding: keep the inherited chat runtime (needed for Convex checkpoints)
-  or adopt `useEveAgent` if it fits the persistence pattern.

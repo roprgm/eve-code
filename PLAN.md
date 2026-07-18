@@ -41,18 +41,25 @@ Throwaway code; the deliverable is answers written into the docs.
   processes do not, so server starts are ensure-style. One caveat: in-browser HMR
   is verified visually at Phase 3's design review.
 
-### Phase 1 — Chat skeleton
+### Phase 1 — Session skeleton
 
 - **Goal:** the eve-vite-convex anatomy, retargeted to projects.
-- **Scope:** chat UI with streaming turns, checkpoint persistence via the Eve hook,
-  data model `projects`, `chats`, and `turns` — creating a project creates its one
-  chat with it — routes `/` and `/p/:projectId` (the project page opens its chat),
-  optimistic creation with client-generated IDs. No sandbox.
+- **Scope:** conversation UI with streaming turns, checkpoint persistence via the
+  Eve hook, data model `projects`, `sessions`, and `turns` — creating a project
+  creates its one session with it — routes `/` and `/p/:projectId` (the project
+  page opens its session), optimistic creation with client-generated IDs. No
+  sandbox.
 - **Out of scope:** sandbox, tools, workspace UI, auth, any way to add a second
-  chat.
+  session.
 - **Done when:** deployed; a conversation streams live, survives reload from Convex,
   and creating a project navigates instantly.
 - **Reads:** Principles 1-2 and 9, Data model, Frontend, Performance.
+- **Status: done.** Deployed privately (Vercel Authentication; the public
+  production domain is removed) with Convex provisioned through Vercel's native
+  integration and the Convex URL injected into both service builds by
+  `convex deploy --cmd-url-env-var-name`. The frontend binding question resolved
+  to the session runtime — checkpoint persistence needs it. Design reviewed and
+  approved by the owner, including mobile.
 
 ### Phase 2 — Sandbox and built-in tools
 
@@ -62,7 +69,9 @@ Throwaway code; the deliverable is answers written into the docs.
   agent works through Eve's built-in `bash`, `read_file`, `write_file`, `glob`,
   `grep`; `bash` override shaping long output (head+tail, byte cap);
   `instructions.md` with the harness discipline (todo list, verify before done,
-  read before edit); tool activity rendered in the chat stream.
+  read before edit); the activity system in the conversation — each tool call and thinking
+  span rendered as a distinct activity with its elapsed time, replacing phase 1's
+  single "Thinking…" label (see Frontend, Activity).
 - **Out of scope:** custom tools, preview, any workspace UI.
 - **Done when:** "add a file explaining this project" results in a file the agent can
   `bash cat` back, in a fresh turn, after a reload.
@@ -95,11 +104,11 @@ Throwaway code; the deliverable is answers written into the docs.
 ### Phase 5 — Files tab
 
 - **Goal:** watch the agent's work.
-- **Scope:** workspace panel beside the chat; file tree + read-only Shiki viewer,
+- **Scope:** workspace panel beside the conversation; file tree + read-only Shiki viewer,
   lazy-loaded, refreshed after each turn.
 - **Out of scope:** editing, terminal.
 - **Done when:** files the agent just wrote are browsable with highlighting, and the
-  chat bundle did not grow.
+  core bundle did not grow.
 - **Reads:** Frontend, Performance (lazy heavyweights).
 
 ### Phase 6 — Terminal
@@ -118,7 +127,7 @@ Throwaway code; the deliverable is answers written into the docs.
 
 - **Goal:** risky commands ask first.
 - **Scope:** the `approval` policy added to the existing `bash` override;
-  approve/deny UI in the chat (inherited input-request pattern); policy for what
+  approve/deny UI in the conversation (inherited input-request pattern); policy for what
   needs approval written in instructions.
 - **Out of scope:** per-user policies.
 - **Done when:** "delete everything and start over" pauses for approval; denying it
@@ -140,7 +149,7 @@ Throwaway code; the deliverable is answers written into the docs.
 
 - **Goal:** human and agent edit interchangeably.
 - **Scope:** CodeMirror replacing the read-only viewer, lazy-loaded; save uses the
-  same write path as the agent; `edit_file` calls rendered as diffs in the chat.
+  same write path as the agent; `edit_file` calls rendered as diffs in the conversation.
 - **Done when:** a human edit hot-reloads the preview, and the agent's next edit
   builds on it.
 - **Reads:** Frontend, Performance, Dependencies.
@@ -153,7 +162,7 @@ Throwaway code; the deliverable is answers written into the docs.
   per-turn usage record already feeds it with real numbers.
 - GitHub integration: `git` + `gh` in `bootstrap()`, a user token brokered via
   `onSession()`, PRs as plain commands. Also waits on identity.
-- Multiple chats per project: one Eve sandbox per chat, a project preview sandbox,
+- Multiple sessions per project: one Eve sandbox per session, a project preview sandbox,
   local git syncing commits between them. Verified feasible — the mechanics are in
   docs/sandbox.md and the design in ARCHITECTURE.md's Later.
 - Skills per stack (vite-app, python-script, api-server) when instructions outgrow
