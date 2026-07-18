@@ -1,6 +1,13 @@
+import type { HandleMessageStreamEvent } from "eve/client";
 import { describe, expect, it } from "vitest";
 
-import { projectEveMessages, type StoredEveEvent } from "@/lib/eve-events";
+import {
+  getReasoningTimingKey,
+  getToolTimingKey,
+  projectActivityTimings,
+  projectEveMessages,
+  type StoredEveEvent,
+} from "@/lib/eve-events";
 
 function userEvent(index: number, message: string, at: string): StoredEveEvent {
   return {
@@ -40,5 +47,67 @@ describe("projectEveMessages", () => {
     );
     expect(messages.map(({ id }) => id)).toEqual(["turn_0:user", "turn_1:user"]);
     expect(messages.at(-1)?.createdAt).toBe(20);
+  });
+});
+
+function timedEvent(index: number, at: string | undefined, event: object): StoredEveEvent {
+  const meta = at === undefined ? undefined : { at };
+  return { event: { ...event, meta } as HandleMessageStreamEvent, index };
+}
+
+describe("projectActivityTimings", () => {
+  it("times tool calls from request to result", () => {
+    const timings = projectActivityTimings([
+      timedEvent(0, "2026-01-01T10:00:00.000Z", {
+        data: {
+          actions: [{ callId: "call-1", input: {}, kind: "tool-call", toolName: "bash" }],
+          sequence: 0,
+          stepIndex: 0,
+          turnId: "turn-1",
+        },
+        type: "actions.requested",
+      }),
+      timedEvent(1, "2026-01-01T10:00:03.000Z", {
+        data: {
+          result: { callId: "call-1", kind: "tool-result", output: {}, toolName: "bash" },
+          sequence: 1,
+          status: "completed",
+          stepIndex: 0,
+          turnId: "turn-1",
+        },
+        type: "action.result",
+      }),
+    ]);
+    expect(timings.get(getToolTimingKey("call-1"))).toEqual({
+      endedAt: Date.parse("2026-01-01T10:00:00.000Z") + 3000,
+      startedAt: Date.parse("2026-01-01T10:00:00.000Z"),
+    });
+  });
+
+  it("times thinking spans from step start to reasoning completion", () => {
+    const timings = projectActivityTimings([
+      timedEvent(0, "2026-01-01T10:00:00.000Z", {
+        data: { sequence: 0, stepIndex: 2, turnId: "turn-1" },
+        type: "step.started",
+      }),
+      timedEvent(1, "2026-01-01T10:00:08.000Z", {
+        data: { reasoning: "thought", sequence: 1, stepIndex: 2, turnId: "turn-1" },
+        type: "reasoning.completed",
+      }),
+    ]);
+    expect(timings.get(getReasoningTimingKey("turn-1", 2))).toEqual({
+      endedAt: Date.parse("2026-01-01T10:00:08.000Z"),
+      startedAt: Date.parse("2026-01-01T10:00:00.000Z"),
+    });
+  });
+
+  it("ignores events without timestamps", () => {
+    const timings = projectActivityTimings([
+      timedEvent(0, undefined, {
+        data: { sequence: 0, stepIndex: 0, turnId: "turn-1" },
+        type: "step.started",
+      }),
+    ]);
+    expect(timings.size).toBe(0);
   });
 });

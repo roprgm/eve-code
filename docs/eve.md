@@ -38,6 +38,12 @@ side effect on approval also protects it from step replays.
 - `bootstrap({ use })` is **template-scoped**: runs once at template build, its
   filesystem state is inherited by every session. Dependency installs go here. Set
   `revalidationKey` only for external inputs; authored source and seeds are tracked.
+- Template build order (verified in the vercel backend): base runtime setup →
+  authored `bootstrap` → seed files → snapshot. Seeds land **after** bootstrap, so
+  an install in bootstrap names its packages explicitly instead of reading the
+  seeded `package.json`.
+- `run()` returns `{ exitCode, stdout, stderr }` and does not throw on a non-zero
+  exit; bootstrap code checks the exit code itself.
 - `onSession({ use, ctx })` is **session-scoped**: runs once per durable session
   (again only if the sandbox definition changes). `use(opts)` flows to the backend's
   update path — this is where per-session `ports`, resources, network policy, and

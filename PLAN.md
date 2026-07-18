@@ -76,6 +76,14 @@ Throwaway code; the deliverable is answers written into the docs.
 - **Done when:** "add a file explaining this project" results in a file the agent can
   `bash cat` back, in a fresh turn, after a reload.
 - **Reads:** Principles 3-5, Coding harness, docs/eve.md (sandbox definition).
+- **Status: implemented, awaiting owner review.** Sandbox (`vercel()` backend,
+  seeded vanilla-Vite template + `WORKSPACE.md`, `bootstrap()` installing vite),
+  `bash` override with head+tail output shaping, harness instructions, and the
+  activity stream (thinking spans and tool calls as distinct timed activities,
+  expandable for reasoning and bash output). One template-build discovery folded
+  into docs/eve.md: seeds land after `bootstrap()`, so the install names its
+  package explicitly. Pending: owner design review of the activity UI and the
+  end-to-end check on the deployment.
 
 ### Phase 3 — Custom tools and preview
 

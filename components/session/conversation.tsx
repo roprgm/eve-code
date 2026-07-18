@@ -1,3 +1,5 @@
+import { Brain } from "lucide-react";
+
 import { Message } from "@/components/session/message";
 import { ModelActivity } from "@/components/session/model-activity";
 import type { useSession } from "@/components/session/use-session";
@@ -16,11 +18,14 @@ export function Conversation({ view }: ConversationProps) {
           isActive={view.isGenerating && message.metadata?.status === "streaming"}
           key={message.id}
           message={message}
+          timings={view.timings}
         />
       ))}
       {view.activityLabel && (
         <MessageScrollerItem>
-          <ModelActivity label={view.activityLabel} />
+          <div className="pt-3 pb-8">
+            <ModelActivity icon={Brain} isAnimated label={view.activityLabel} />
+          </div>
         </MessageScrollerItem>
       )}
     </>

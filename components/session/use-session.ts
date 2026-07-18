@@ -1,7 +1,7 @@
-import type { EveMessage, SendTurnPayload, SessionState } from "eve/client";
+import type { EveMessage, EveMessagePart, SendTurnPayload, SessionState } from "eve/client";
 import { useEffect, useMemo } from "react";
 
-import { projectEveMessages, type StoredEveEvent } from "@/lib/eve-events";
+import { projectActivityTimings, projectEveMessages, type StoredEveEvent } from "@/lib/eve-events";
 import { findPendingInput, isSessionLimitRequest } from "@/lib/pending-input";
 import {
   clearSessionRuntime,
@@ -36,11 +36,17 @@ function toSessionState(session: StoredSession): SessionState {
   };
 }
 
-function hasAssistantTextAfterLatestUser(messages: readonly EveMessage[]): boolean {
+function isVisiblePart(part: EveMessagePart): boolean {
+  if (part.type === "dynamic-tool") return true;
+  if (part.type === "text" || part.type === "reasoning") return part.text.trim().length > 0;
+  return false;
+}
+
+function hasAssistantActivityAfterLatestUser(messages: readonly EveMessage[]): boolean {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (!message || message.role === "user") return false;
-    if (message.parts.some((part) => part.type === "text" && part.text.trim())) return true;
+    if (message.parts.some(isVisiblePart)) return true;
   }
   return false;
 }
@@ -69,7 +75,7 @@ function activityLabel(
 ): string | undefined {
   if (!isGenerating) return;
   if (hasInput) return;
-  if (hasAssistantTextAfterLatestUser(messages)) return;
+  if (hasAssistantActivityAfterLatestUser(messages)) return;
   if (error) return;
   return "Thinking...";
 }
@@ -94,10 +100,15 @@ export function useSession({ checkpointEvents, session, sessionId }: UseSessionO
   const runtime = useSessionRuntime(sessionId);
   const runtimeStatus = runtime?.connection.status;
   const cursor = session?.streamIndex ?? 0;
-  const messages = useMemo(() => {
-    const events = runtime?.events.filter((event) => event.index >= cursor) ?? [];
-    return projectEveMessages([...checkpointEvents, ...events], runtime?.optimistic);
-  }, [checkpointEvents, cursor, runtime?.events, runtime?.optimistic]);
+  const events = useMemo(() => {
+    const live = runtime?.events.filter((event) => event.index >= cursor) ?? [];
+    return [...checkpointEvents, ...live];
+  }, [checkpointEvents, cursor, runtime?.events]);
+  const messages = useMemo(
+    () => projectEveMessages(events, runtime?.optimistic),
+    [events, runtime?.optimistic],
+  );
+  const timings = useMemo(() => projectActivityTimings(events), [events]);
   const checkpointed = isCheckpointed(session, runtime);
 
   useEffect(() => {
@@ -149,5 +160,6 @@ export function useSession({ checkpointEvents, session, sessionId }: UseSessionO
     pendingInput: visibleInput,
     sendMessage,
     stop: () => stopSession(sessionId, session && toSessionState(session)),
+    timings,
   };
 }
