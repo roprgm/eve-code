@@ -15,12 +15,22 @@ import { ModelActivity } from "@/components/session/model-activity";
 import { useElapsed } from "@/components/session/use-elapsed";
 import type { ActivityTiming } from "@/lib/eve-events";
 
-type ToolLabels = {
+type ToolDefinition = {
   readonly active: string;
-  readonly detail?: string;
   readonly done: string;
-  readonly failed: string;
+  readonly input?: string;
   readonly icon: LucideIcon;
+};
+
+const TOOL_DEFINITIONS: Readonly<Record<string, ToolDefinition>> = {
+  bash: { active: "Running", done: "Ran", icon: Terminal, input: "command" },
+  glob: { active: "Listing files", done: "Listed files", icon: Files, input: "pattern" },
+  grep: { active: "Searching", done: "Searched", icon: TextSearch, input: "pattern" },
+  read_file: { active: "Reading", done: "Read", icon: FileText, input: "filePath" },
+  start_dev: { active: "Starting app", done: "App is live", icon: Globe, input: "command" },
+  todo: { active: "Updating todos", done: "Updated todos", icon: ListTodo },
+  web_fetch: { active: "Fetching", done: "Fetched", icon: Globe, input: "url" },
+  write_file: { active: "Writing", done: "Wrote", icon: FilePen, input: "filePath" },
 };
 
 function getInputString(input: unknown, field: string): string | undefined {
@@ -29,75 +39,15 @@ function getInputString(input: unknown, field: string): string | undefined {
   if (typeof value === "string") return value;
 }
 
-function formatWorkspacePath(path: string | undefined): string | undefined {
-  return path?.replace(/^\/workspace\//, "");
+function getToolDefinition(name: string): ToolDefinition {
+  return TOOL_DEFINITIONS[name] ?? { active: `Running ${name}`, done: `Ran ${name}`, icon: Wrench };
 }
 
-function getToolLabels(part: EveDynamicToolPart): ToolLabels {
-  const name = part.toolName;
-  if (name === "bash") {
-    return {
-      active: "Running",
-      detail: getInputString(part.input, "command"),
-      done: "Ran",
-      failed: "Failed",
-      icon: Terminal,
-    };
-  }
-  if (name === "read_file") {
-    return {
-      active: "Reading",
-      detail: formatWorkspacePath(getInputString(part.input, "filePath")),
-      done: "Read",
-      failed: "Failed to read",
-      icon: FileText,
-    };
-  }
-  if (name === "write_file") {
-    return {
-      active: "Writing",
-      detail: formatWorkspacePath(getInputString(part.input, "filePath")),
-      done: "Wrote",
-      failed: "Failed to write",
-      icon: FilePen,
-    };
-  }
-  if (name === "glob") {
-    return {
-      active: "Listing files",
-      detail: getInputString(part.input, "pattern"),
-      done: "Listed files",
-      failed: "Failed to list files",
-      icon: Files,
-    };
-  }
-  if (name === "grep") {
-    return {
-      active: "Searching",
-      detail: getInputString(part.input, "pattern"),
-      done: "Searched",
-      failed: "Failed to search",
-      icon: TextSearch,
-    };
-  }
-  if (name === "todo") {
-    return {
-      active: "Updating todos",
-      done: "Updated todos",
-      failed: "Failed to update todos",
-      icon: ListTodo,
-    };
-  }
-  if (name === "web_fetch") {
-    return {
-      active: "Fetching",
-      detail: getInputString(part.input, "url"),
-      done: "Fetched",
-      failed: "Failed to fetch",
-      icon: Globe,
-    };
-  }
-  return { active: `Running ${name}`, done: `Ran ${name}`, failed: `${name} failed`, icon: Wrench };
+function getToolDetail(part: EveDynamicToolPart, definition: ToolDefinition): string | undefined {
+  if (!definition.input) return;
+  const detail = getInputString(part.input, definition.input);
+  if (definition.input === "filePath") return detail?.replace(/^\/workspace\//, "");
+  return detail;
 }
 
 function isSettled(part: EveDynamicToolPart): boolean {
@@ -108,10 +58,15 @@ function isSettled(part: EveDynamicToolPart): boolean {
   );
 }
 
-function getLabel(part: EveDynamicToolPart, labels: ToolLabels, isRunning: boolean): string {
-  if (isRunning) return labels.active;
-  if (part.state === "output-error") return labels.failed;
-  return labels.done;
+function getLabel(
+  part: EveDynamicToolPart,
+  definition: ToolDefinition,
+  isRunning: boolean,
+): string {
+  if (isRunning) return definition.active;
+  if (part.state === "output-error") return "Failed";
+  if (part.state === "output-denied") return "Denied";
+  return definition.done;
 }
 
 function getDetails(part: EveDynamicToolPart): string | undefined {
@@ -136,20 +91,20 @@ type ToolActivityProps = {
 export function ToolActivity({ isActive, part, timing }: ToolActivityProps) {
   const isRunning = isActive && !isSettled(part);
   const elapsed = useElapsed(timing, isRunning);
-  const labels = getToolLabels(part);
-  const label = getLabel(part, labels, isRunning);
+  const definition = getToolDefinition(part.toolName);
+  const label = getLabel(part, definition, isRunning);
   const details = getDetails(part);
 
   return (
     <ModelActivity
-      detail={labels.detail}
+      detail={getToolDetail(part, definition)}
       elapsed={elapsed}
-      icon={labels.icon}
+      icon={definition.icon}
       isAnimated={isRunning}
       label={label}
     >
       {details && (
-        <pre className="max-h-64 overflow-y-auto wrap-anywhere whitespace-pre-wrap font-mono text-sm">
+        <pre className="app-scrollbar scroll-fade max-h-64 overflow-y-auto wrap-anywhere whitespace-pre-wrap font-mono text-sm">
           {details}
         </pre>
       )}

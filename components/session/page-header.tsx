@@ -1,9 +1,29 @@
-import { PanelLeft } from "lucide-react";
+import { ExternalLink, PanelLeft } from "lucide-react";
 import { useOutletContext } from "react-router";
 
 import { Button } from "@/components/ui/button";
 
-export function PageHeader({ title }: { readonly title: string }) {
+type PageHeaderProps = {
+  readonly previewUrl?: string;
+  readonly title: string;
+};
+
+function PreviewButton({ url }: { readonly url?: string }) {
+  if (!url) return null;
+
+  function openPreview(): void {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  return (
+    <Button className="ml-auto" onClick={openPreview} variant="outline">
+      <ExternalLink aria-hidden="true" />
+      Open app
+    </Button>
+  );
+}
+
+export function PageHeader({ previewUrl, title }: PageHeaderProps) {
   const { openSidebar } = useOutletContext<{ readonly openSidebar: () => void }>();
 
   return (
@@ -18,6 +38,7 @@ export function PageHeader({ title }: { readonly title: string }) {
         <PanelLeft aria-hidden="true" />
       </Button>
       <h1 className="ml-1 truncate font-medium">{title}</h1>
+      <PreviewButton url={previewUrl} />
     </header>
   );
 }

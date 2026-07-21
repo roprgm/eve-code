@@ -33,17 +33,10 @@ side effect on approval also protects it from step replays.
 
 ## Sandbox definition
 
-- `agent/sandbox/sandbox.ts` + seeded files under `agent/sandbox/workspace/`
-  (mirrored into `/workspace`; top-level entries appear in the model's prompt).
-- `bootstrap({ use })` is **template-scoped**: runs once at template build, its
-  filesystem state is inherited by every session. Dependency installs go here. Set
-  `revalidationKey` only for external inputs; authored source and seeds are tracked.
-- Template build order (verified in the vercel backend): base runtime setup →
-  authored `bootstrap` → seed files → snapshot. Seeds land **after** bootstrap, so
-  an install in bootstrap names its packages explicitly instead of reading the
-  seeded `package.json`.
-- `run()` returns `{ exitCode, stdout, stderr }` and does not throw on a non-zero
-  exit; bootstrap code checks the exit code itself.
+- `agent/sandbox.ts` is Eve's definition-only layout. This project only selects
+  `vercel()`, so `/workspace` starts empty and no template prewarm runs.
+- Framework setup belongs in load-on-demand skills after the stack is selected.
+  Skills live outside `/workspace` and add instructions, not execution surfaces.
 - `onSession({ use, ctx })` is **session-scoped**: runs once per durable session
   (again only if the sandbox definition changes). `use(opts)` flows to the backend's
   update path — this is where per-session `ports`, resources, network policy, and
@@ -75,4 +68,5 @@ the terminal if direct browser-to-sandbox WebSockets ever misbehave.
 Eve owns the live turn. A hook on `turn.started` marks the chat running; hooks on
 `session.completed` / `session.failed` / `session.waiting` replay the durable stream
 from the last cursor via `eve/client` and commit one compact checkpoint to Convex.
-The browser never finalizes persistence.
+The browser never finalizes persistence. Authentication is deferred until the app
+has user accounts; these Convex functions are public during the demo phase.

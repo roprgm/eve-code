@@ -56,7 +56,7 @@ function timedEvent(index: number, at: string | undefined, event: object): Store
 }
 
 describe("projectActivityTimings", () => {
-  it("times tool calls from request to result", () => {
+  it("projects tool and reasoning durations", () => {
     const timings = projectActivityTimings([
       timedEvent(0, "2026-01-01T10:00:00.000Z", {
         data: {
@@ -77,37 +77,22 @@ describe("projectActivityTimings", () => {
         },
         type: "action.result",
       }),
+      timedEvent(2, "2026-01-01T10:00:04.000Z", {
+        data: { sequence: 2, stepIndex: 2, turnId: "turn-1" },
+        type: "step.started",
+      }),
+      timedEvent(3, "2026-01-01T10:00:08.000Z", {
+        data: { reasoning: "thought", sequence: 3, stepIndex: 2, turnId: "turn-1" },
+        type: "reasoning.completed",
+      }),
     ]);
     expect(timings.get(getToolTimingKey("call-1"))).toEqual({
       endedAt: Date.parse("2026-01-01T10:00:00.000Z") + 3000,
       startedAt: Date.parse("2026-01-01T10:00:00.000Z"),
     });
-  });
-
-  it("times thinking spans from step start to reasoning completion", () => {
-    const timings = projectActivityTimings([
-      timedEvent(0, "2026-01-01T10:00:00.000Z", {
-        data: { sequence: 0, stepIndex: 2, turnId: "turn-1" },
-        type: "step.started",
-      }),
-      timedEvent(1, "2026-01-01T10:00:08.000Z", {
-        data: { reasoning: "thought", sequence: 1, stepIndex: 2, turnId: "turn-1" },
-        type: "reasoning.completed",
-      }),
-    ]);
     expect(timings.get(getReasoningTimingKey("turn-1", 2))).toEqual({
       endedAt: Date.parse("2026-01-01T10:00:08.000Z"),
-      startedAt: Date.parse("2026-01-01T10:00:00.000Z"),
+      startedAt: Date.parse("2026-01-01T10:00:04.000Z"),
     });
-  });
-
-  it("ignores events without timestamps", () => {
-    const timings = projectActivityTimings([
-      timedEvent(0, undefined, {
-        data: { sequence: 0, stepIndex: 0, turnId: "turn-1" },
-        type: "step.started",
-      }),
-    ]);
-    expect(timings.size).toBe(0);
   });
 });

@@ -1,5 +1,6 @@
 import { ForbiddenError, localDev, none, vercelOidc } from "eve/channels/auth";
 import { defaultEveAuth, eveChannel } from "eve/channels/eve";
+
 import { isPublicId, SESSION_ID_ATTRIBUTE, SESSION_ID_HEADER } from "@/lib/identity";
 
 export default eveChannel({

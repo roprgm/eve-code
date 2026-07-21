@@ -1,15 +1,9 @@
 import { ConvexError, v } from "convex/values";
 
-import { isPublicId } from "../lib/identity";
-import { env, type MutationCtx, mutation, type QueryCtx, query } from "./_generated/server";
+import { type MutationCtx, mutation, type QueryCtx, query } from "./_generated/server";
 
-const identity = { eveSessionId: v.string(), secret: v.string(), sessionId: v.string() };
+const identity = { eveSessionId: v.string(), sessionId: v.string() };
 const event = v.object({ event: v.any(), index: v.number() });
-
-function authorize(sessionId: string, secret: string): void {
-  if (secret === env.EVE_HOOK_SECRET && isPublicId(sessionId)) return;
-  throw new ConvexError("Invalid Eve persistence request.");
-}
 
 async function getSession(ctx: Pick<QueryCtx, "db">, sessionId: string, eveSessionId: string) {
   const session = await ctx.db
@@ -43,7 +37,6 @@ async function touchProject(ctx: MutationCtx, projectId: string, at: number): Pr
 export const replayState = query({
   args: { ...identity, turnId: v.string() },
   handler: async (ctx, args) => {
-    authorize(args.sessionId, args.secret);
     const session = await getSession(ctx, args.sessionId, args.eveSessionId);
     if (!session) return { committed: false, deleted: true, streamIndex: 0 };
     const turn = await getTurn(ctx, args.sessionId, args.turnId);
@@ -54,7 +47,6 @@ export const replayState = query({
 export const beginTurn = mutation({
   args: { ...identity, startedAt: v.number() },
   handler: async (ctx, args) => {
-    authorize(args.sessionId, args.secret);
     const session = await getSession(ctx, args.sessionId, args.eveSessionId);
     if (!session) return;
     await ctx.db.patch(session._id, {
@@ -78,7 +70,6 @@ export const commitTurn = mutation({
     usage: v.object({ inputTokens: v.number(), outputTokens: v.number() }),
   },
   handler: async (ctx, args) => {
-    authorize(args.sessionId, args.secret);
     const session = await getSession(ctx, args.sessionId, args.eveSessionId);
     if (!session) return;
     const existing = await getTurn(ctx, args.sessionId, args.turnId);

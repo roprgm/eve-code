@@ -11,28 +11,38 @@ survive any amount of idle time.
 
 ## Features
 
-- **Live preview** — every project runs on a dev server with its own URL and
-  hot-reloads on each change.
+- **Live preview** — web projects run on their own dev server and hot-reload on
+  each change.
 - **Persistent sandbox** — an isolated Linux VM per project; its filesystem
   survives idle-outs and redeploys.
-- **Any code** — projects start from a Vite template; the agent can replace it with
-  any framework, script, or API.
+- **Any code** — projects start empty; optional load-on-demand skills initialize the
+  chosen stack without making a framework the default.
 - **Shared terminal** — a shell into the same machine the agent works on.
 - **Approvals** — destructive commands require confirmation before running.
 - **Zip export** — the project's code can be downloaded at any time.
 
 ## Usage
 
+### Setup
+
 ```bash
 bun install
-bunx convex dev --once
+bunx vercel link
+bunx vercel integration add convex
+bunx vercel env pull .env.local
+```
+
+```bash
 bun run dev
 ```
 
-Set `AI_GATEWAY_API_KEY` and `EVE_HOOK_SECRET` as described in `.env.example`.
-`vercel deploy` ships both services; their wiring is declared in `vercel.json`.
-On Vercel, Convex provisions in one step with `vercel integration add convex`,
-and no AI Gateway key is needed — eve authenticates with the project's OIDC.
+Set `AI_GATEWAY_API_KEY` only when not using Vercel OIDC.
+
+### Deploy
+
+Push a branch or run `bunx vercel deploy`. The Convex integration supplies the deploy
+keys; `vercel.json` deploys both services and gives every preview its own Convex
+deployment.
 
 ## Development
 

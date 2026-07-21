@@ -43,21 +43,18 @@ Convex (projects, sessions,     dev server    sandbox-server
 2. **A session is a durable Eve session.** Ours and Eve's are deliberately the
    same concept — one durable session carries the conversation, the sandbox,
    per-session state, and turn serialization — no locks, no session bookkeeping of
-   ours. A project groups sessions and owns what they share: the name and the
-   preview. Today every project has exactly one session, created with it — the UI
+   ours. A project groups sessions and owns their name. Today every project has
+   exactly one session, created with it — the UI
    offers no way to add more, but nothing in the data assumes there is one.
-3. **The sandbox is Eve's sandbox.** `defineSandbox` with the `vercel()` backend. The
-   template is seeded files under `agent/sandbox/workspace/`; `bootstrap()` installs
-   its dependencies once per template build, so every project starts warm, with a dev
-   server one `spawn` away. The filesystem persists with the session. No sandbox
-   lifecycle code of ours.
+3. **The sandbox is Eve's sandbox.** `agent/sandbox.ts` selects the `vercel()` backend
+   and leaves `/workspace` empty. No framework, seed, or bootstrap of ours; the
+   filesystem persists with the session and Eve owns its lifecycle.
 4. **The agent's hands are Eve's built-in tools.** `bash`, `read_file`, `write_file`,
    `glob`, `grep` come with the sandbox. We add only what is missing: `edit_file`
    (exact string replacement) and `start_dev` (spawn the dev server, publish its URL).
-5. **The agent builds anything; the template is just a head start.** Every project
-   starts from a minimal running Vite app so there is a preview from the first second,
-   but the agent is unconstrained — it can grow it, replace it, or turn the project
-   into a Python script or an API.
+5. **The agent builds anything.** Every project starts empty. The requested stack is
+   selected first, then its dependencies are installed. Optional Eve skills provide
+   quick starts without making one framework the default.
 6. **Risky work pauses for a human.** Destructive or surprising commands go through
    Eve's human-in-the-loop approval: the run pauses, the chat asks with its
    input-request component, the session resumes.
@@ -69,26 +66,25 @@ Convex (projects, sessions,     dev server    sandbox-server
    browser tab — full window, real URL, the dev server's own HMR. No iframes.
 9. **Persistence is a hook, not the browser.** Eve owns the live turn; a hook
    replays the durable stream and commits one compact checkpoint per turn to Convex.
-   Tool calls, approvals, and subagent activity travel in that same stream, so the
-   UI shows everything with no extra channel.
+   These functions remain public while the demo has no user authentication. Tool
+   calls, approvals, and subagent activity travel in that same stream, so the UI
+   shows everything with no extra channel.
 10. **Human and agent share the shell.** The terminal connects to the same sandbox the
     agent works in, so either can pick up where the other left off.
 
 ## Data model
 
 ```
-projects   name, previewUrl?, updatedAt
-sessions   projectId, sessionId, eveSessionId, status, streamIndex,
-           serverUrl?, serverToken?
+projects   name, updatedAt
+sessions   projectId, sessionId, eveSessionId, status, streamIndex
 turns      sessionId, events, searchText, streamIndex, usage
 ```
 
 One session per project for now, created with the project — and still no turn
 lock, because Eve serializes turns within a session. `sessionId` is our public id;
 `eveSessionId` is Eve's durable session behind it. The split anticipates more
-sessions without building them: the preview belongs to the project (one live app,
-whichever sandbox serves it — today its only session's), while the terminal and
-zip belong to the session whose sandbox they enter.
+sessions without building them. Preview URLs, tool calls, and activity already live
+in Eve's persisted stream instead of separate database fields.
 
 `usage` is what the turn cost — model tokens, and sandbox seconds once there is a
 sandbox — written by the checkpoint hook. It is recorded for future analytics;
@@ -103,17 +99,10 @@ is a handful of small deltas, each a few lines:
   string must match exactly once (fail loudly on zero or many matches), and the
   result echoes the changed region so the model sees what it did. Cheaper and safer
   than rewriting whole files.
-- **`start_dev`** — ensure-style dev server plus published URL (see Sandbox server).
-- **`bash` override** — one file, two jobs: the `approval` policy for destructive
-  commands, and output shaping — long stdout/stderr truncated to a head+tail window
-  with a byte cap, so one noisy command cannot flood the context.
+- **`start_dev`** — spawn the model-selected command, expose its port, and return its URL.
 - **Instructions** — the discipline that multiplies the tools: use the built-in
   `todo` list for multi-step work; verify before claiming done (build passes, dev
   server answers); prefer `edit_file` over rewrites; read before editing.
-
-The template also seeds a short top-level `WORKSPACE.md` describing itself — Eve
-surfaces top-level workspace entries in the model's prompt, so the agent starts
-every session knowing what it is standing on, for free.
 
 Nothing else. Planning modes, memory systems, and extra tools stay out unless a
 phase proves the need.
@@ -121,17 +110,15 @@ phase proves the need.
 ## Sandbox server
 
 One tiny server inside the sandbox, guarded by a random token. Spawned processes do
-not survive a sandbox resume, so it is launched ensure-style — check, start if
-missing — at each turn start:
+not survive a sandbox resume; the UI explains how to start it again when needed:
 
 ```
 Browser ── xterm.js ── wss://…/?token=… ──▶ pty (bash)
 Browser ── GET https://…/zip?token=… ─────▶ zip of the workspace
 ```
 
-A single small script (`sandbox-server.mjs`, node-pty + ws) seeded with the template.
-Its dependencies install in `bootstrap()` — they never appear in this repo's
-package.json.
+A single small script (`sandbox-server.mjs`, node-pty + ws) lives inside the sandbox.
+Its dependencies stay there — they never appear in this repo's package.json.
 
 The browser reaches both servers through the sandbox's per-port public URLs
 (`https://….vercel.run`), which are stable across stop/resume. Two ports: dev server
@@ -148,7 +135,8 @@ plan's phase rules).
 - **Home** — your projects, newest first, and a composer that creates one.
 - **Project** — the conversation beside a workspace: Open app, Files (tree +
   read-only Shiki viewer; CodeMirror later), Terminal, Download zip. All workspace
-  state is read reactively from the project and session documents in Convex.
+  state comes from Eve's stream and the current sandbox. Open app uses the latest
+  `start_dev` result.
 - **Activity** — while the agent works, the conversation shows what it is doing as
   distinct activities sourced from the stream events — thinking, running a
   command, reading or editing a file — each with its elapsed time. A single
@@ -167,11 +155,9 @@ work is refusing to bypass it:
 - **Optimistic creation.** Creating a project generates its public ID in the browser,
   renders the first message, and navigates to `/p/:id` before any server round
   trip. Eve and the sandbox warm up behind a UI that is already alive.
-- **Streaming everywhere.** Turns render token by token from Eve's stream; workspace
-  metadata (preview URL, status) arrives reactively from Convex the moment the agent
-  publishes it.
-- **Warm sandboxes.** `bootstrap()` bakes dependencies into the template build, so a
-  new project's sandbox starts seeded and ready instead of running installs.
+- **Streaming everywhere.** Turns and the latest preview URL render from Eve's stream.
+- **Stack-specific installs.** New sandboxes stay empty; a skill installs only the
+  selected framework, and the persistent filesystem reuses it on later turns.
 - **Lazy heavyweights.** xterm, Shiki, and later CodeMirror load with the tab that
   needs them, never with the conversation. The core bundle stays small because the dependency
   list stays small.
@@ -187,9 +173,10 @@ docs/           reference notes (sandbox.md, eve.md) — not code
 agent/          the Eve agent (backend). Imports: lib, convex/_generated. Never UI.
   agent.ts  instructions.md
   channels/eve.ts  hooks/persist-session.ts
-  sandbox/  sandbox.ts  workspace/        ← template + sandbox-server.mjs (seeded)
+  sandbox.ts                              ← empty Vercel-backed workspace
+  skills/                                  ← optional stack recipes
   subagents/  reviewer/
-  tools/  bash.ts  edit-file.ts  start-dev.ts
+  tools/  edit-file.ts  start-dev.ts
 convex/         data model and server functions. Imports: lib (pure logic only).
   schema.ts  projects.ts  persistence.ts
 lib/            shared pure logic: identities, event shapes, stores, utilities.
@@ -244,8 +231,7 @@ streamdown, zustand, biome, bun, vitest.
 
 New — kept deliberately short:
 
-- `@vercel/sandbox` — one read-only `Sandbox.get(...).domain(port)` call in
-  `start_dev` to resolve preview URLs; everything else goes through Eve's sandbox
+- `@vercel/sandbox` — expose the Eve sandbox's preview port and resolve its URL
 - `@xterm/xterm` + `@xterm/addon-fit` — terminal client
 - `shiki` — read-only file viewer (already transitive via streamdown)
 - `@codemirror/*` — editing, later phase; chosen over Monaco for size and modularity
@@ -257,10 +243,9 @@ panels (the terminal and the chat stream are the output).
 ## Upstream
 
 This project doubles as a robustness test of Eve. When something cannot be done
-idiomatically, the order of preference is: adjust our design, then flag it to the
-owner if a simple upstream fix or improvement would make a real difference, and only
-then build a local workaround — a patch is a last resort and a signal worth surfacing
-either way. All upstream contact goes through the owner; the agent's job is to notice
+idiomatically, adjust the design and record the limitation in
+[docs/eve-improvements.md](./docs/eve-improvements.md); do not hide it behind a local
+framework workaround. All upstream contact goes through the owner; the agent's job is to notice
 and ask, never to reach out. During the early phases we do not block on upstream:
 note the friction here, ship the phase within what Eve offers today, and revisit once
 the core loop exists.
@@ -280,12 +265,12 @@ lands, not before.
 runs the single preview, and local git moves the code between them — sessions
 commit, the preview sandbox fetches and merges (~270 ms per delta), and a new
 session starts
-from the warm template plus one pull instead of a clone. No shared filesystem
+from an empty sandbox plus one pull instead of a clone. No shared filesystem
 exists on the platform, and none is needed: syncing at commit boundaries keeps the
 one live reload coherent while several sessions work in parallel. This also sets up
 local-first git — branches and experiments live only in the sandboxes, and GitHub
-later becomes an optional remote pushed on request. The template gains `git init`
-when this lands; until then the workspace has no repository at all. Open for that
+later becomes an optional remote pushed on request. The workspace gains `git init`
+when this lands; until then it has no repository at all. Open for that
 phase: where the canonical repo lives (a project preview sandbox vs the first
 session's), and the merge-conflict policy.
 
@@ -300,7 +285,7 @@ identity decision first, since a token implies a signed-in user.
 The uncertain parts were verified before implementation — Eve 0.24.6 by source
 reading, Vercel Sandbox by the Phase 0 spike. The findings that implementation relies on
 live in [docs/sandbox.md](./docs/sandbox.md) (ports, URLs, resume semantics,
-ensure-style servers) and [docs/eve.md](./docs/eve.md) (built-in tools, overrides
+process lifetime) and [docs/eve.md](./docs/eve.md) (built-in tools, overrides
 and approvals, sandbox definition, channel auth, custom channels).
 
 ## Open questions

@@ -12,11 +12,10 @@ type BoundaryEvent = Extract<
   { type: "session.completed" | "session.failed" | "session.waiting" }
 >;
 
-function persistenceClient() {
+function getPersistenceClient(): ConvexHttpClient {
   const convexUrl = process.env.VITE_CONVEX_URL;
-  const secret = process.env.EVE_HOOK_SECRET;
-  if (!convexUrl || !secret) throw new Error("Convex persistence is not configured.");
-  return { client: new ConvexHttpClient(convexUrl), secret };
+  if (!convexUrl) throw new Error("Convex persistence is not configured.");
+  return new ConvexHttpClient(convexUrl);
 }
 
 function replayClient(): Client {
@@ -42,10 +41,9 @@ async function beginTurn(
   const sessionId = initiatorAttribute(ctx, SESSION_ID_ATTRIBUTE);
   if (!isPublicId(sessionId)) return;
 
-  const persistence = persistenceClient();
-  await persistence.client.mutation(api.persistence.beginTurn, {
+  const client = getPersistenceClient();
+  await client.mutation(api.persistence.beginTurn, {
     eveSessionId: ctx.session.id,
-    secret: persistence.secret,
     sessionId,
     startedAt: Date.now(),
   });
@@ -56,11 +54,10 @@ async function commitTurn(event: BoundaryEvent, ctx: HookContext): Promise<void>
   const sessionId = initiatorAttribute(ctx, SESSION_ID_ATTRIBUTE);
   if (!isPublicId(sessionId)) return;
 
-  const persistence = persistenceClient();
+  const client = getPersistenceClient();
   const turnId = ctx.session.turn.id;
-  const replayState = await persistence.client.query(api.persistence.replayState, {
+  const replayState = await client.query(api.persistence.replayState, {
     eveSessionId: ctx.session.id,
-    secret: persistence.secret,
     sessionId,
     turnId,
   });
@@ -81,13 +78,12 @@ async function commitTurn(event: BoundaryEvent, ctx: HookContext): Promise<void>
   let continuationToken: string | undefined;
   if (event.type === "session.waiting") continuationToken = event.data.continuationToken;
 
-  await persistence.client.mutation(api.persistence.commitTurn, {
+  await client.mutation(api.persistence.commitTurn, {
     completedAt: Date.now(),
     continuationToken,
     events: checkpoint.events,
     eveSessionId: ctx.session.id,
     searchText: checkpoint.searchText.slice(0, 100_000),
-    secret: persistence.secret,
     sessionId,
     status: checkpoint.status,
     streamIndex: checkpoint.streamIndex,

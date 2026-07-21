@@ -13,8 +13,8 @@ sandbox.domain(3000); // "https://sb-<subdomain>.vercel.run"
 
 - Up to 4 ports per sandbox. Each port gets its own opaque subdomain.
 - `domain(port)` throws for ports not in the create/update config.
-- Ports can also be added later: `sandbox.update({ ports })` — in Eve, `onSession`'s
-  `use(opts)` flows to `update`.
+- Ports can also be added later with `sandbox.update({ ports })`. `start_dev` uses
+  this to expose the port selected by the model before it launches the server.
 - **URLs are stable across stop/resume.** Safe to persist in Convex.
 
 ## Resolving the URL from Eve
@@ -26,10 +26,11 @@ supports lookup by name:
 ```ts
 const eveSandbox = await ctx.getSandbox();
 const vercelSandbox = await Sandbox.get({ name: eveSandbox.id, resume: false });
-const url = vercelSandbox.domain(3000);
+await vercelSandbox.update({ ports: [port] });
+const url = vercelSandbox.domain(port);
 ```
 
-This is the only place the product touches `@vercel/sandbox` directly.
+`start_dev` is the only place the product touches `@vercel/sandbox` directly.
 
 ## Traffic
 
@@ -46,9 +47,8 @@ This is the only place the product touches `@vercel/sandbox` directly.
 - **Processes do not survive.** Anything spawned (dev server, helper servers) is
   gone after a resume.
 
-Consequence: every long-running process is launched **ensure-style** — check
-liveness, start if missing — at each turn start. The UI treats "sandbox awake,
-server down" as a normal state that the next turn repairs.
+This demo does not add its own lifecycle layer. The agent calls `start_dev` on each
+web turn, and the user can ask it to restart a preview after an idle-out.
 
 ## Snapshots and forks
 

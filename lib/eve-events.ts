@@ -116,3 +116,17 @@ export function projectEveMessages(
     return { ...message, createdAt: timestamp };
   });
 }
+
+export function getPreviewUrl(messages: readonly EveMessage[]): string | undefined {
+  let url: string | undefined;
+  for (const message of messages) {
+    for (const part of message.parts) {
+      if (part.type !== "dynamic-tool" || part.toolName !== "start_dev") continue;
+      if (part.state !== "output-available") continue;
+      const output = part.output;
+      if (!output || typeof output !== "object" || !("url" in output)) continue;
+      if (typeof output.url === "string") url = output.url;
+    }
+  }
+  return url;
+}

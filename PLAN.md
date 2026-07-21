@@ -38,7 +38,7 @@ Throwaway code; the deliverable is answers written into the docs.
 - **Reads:** Principles, Sandbox server, docs/sandbox.md, Open questions.
 - **Status: done.** Findings recorded in docs/sandbox.md —
   ports, URLs, and WebSockets work; the filesystem survives resume but spawned
-  processes do not, so server starts are ensure-style. One caveat: in-browser HMR
+  processes do not, so `start_dev` must be called again after resume. One caveat: in-browser HMR
   is verified visually at Phase 3's design review.
 
 ### Phase 1 — Session skeleton
@@ -57,51 +57,42 @@ Throwaway code; the deliverable is answers written into the docs.
 - **Status: done.** Deployed privately (Vercel Authentication; the public
   production domain is removed) with Convex provisioned through Vercel's native
   integration and the Convex URL injected into both service builds by
-  `convex deploy --cmd-url-env-var-name`. The frontend binding question resolved
+  `convex deploy --cmd`. The frontend binding question resolved
   to the session runtime — checkpoint persistence needs it. Design reviewed and
   approved by the owner, including mobile.
 
 ### Phase 2 — Sandbox and built-in tools
 
 - **Goal:** the agent gets hands.
-- **Scope:** `agent/sandbox/` with the seeded Vite template (including a short
-  `WORKSPACE.md` self-description) and `bootstrap()` installing its dependencies;
-  agent works through Eve's built-in `bash`, `read_file`, `write_file`, `glob`,
-  `grep`; `bash` override shaping long output (head+tail, byte cap);
-  `instructions.md` with the harness discipline (todo list, verify before done,
-  read before edit); the activity system in the conversation — each tool call and thinking
-  span rendered as a distinct activity with its elapsed time, replacing phase 1's
-  single "Thinking…" label (see Frontend, Activity).
+- **Scope:** `agent/sandbox.ts` selects Eve's Vercel backend and leaves `/workspace`
+  empty; optional skills can initialize a selected stack; the agent works through Eve's
+  built-in `bash`, `read_file`, `write_file`, `glob`, `grep`; `instructions.md` carries
+  the harness discipline; the conversation renders each tool call and thinking span
+  as a distinct timed activity (see Frontend, Activity).
 - **Out of scope:** custom tools, preview, any workspace UI.
 - **Done when:** "add a file explaining this project" results in a file the agent can
   `bash cat` back, in a fresh turn, after a reload.
 - **Reads:** Principles 3-5, Coding harness, docs/eve.md (sandbox definition).
-- **Status: implemented, awaiting owner review.** Sandbox (`vercel()` backend,
-  seeded vanilla-Vite template + `WORKSPACE.md`, `bootstrap()` installing vite),
-  `bash` override with head+tail output shaping, harness instructions, and the
-  activity stream (thinking spans and tool calls as distinct timed activities,
-  expandable for reasoning and bash output). One template-build discovery folded
-  into docs/eve.md: seeds land after `bootstrap()`, so the install names its
-  package explicitly. Pending: owner design review of the activity UI and the
-  end-to-end check on the deployment.
+- **Status: implemented, awaiting owner review.** Empty persistent sandbox
+  (`vercel()` backend), optional stack skills, harness instructions, and the
+  expandable activity stream with distinct timed thinking and tool calls. Pending:
+  owner design review and the end-to-end deployment check.
 
 ### Phase 3 — Custom tools and preview
 
 - **Goal:** see the app live.
-- **Scope:** `edit_file` (strict single-match string replacement, echoes the
-  changed region) and `start_dev` (ensure-style dev server, publishes its URL to
-  Convex) in `agent/tools/`; Open-app button on the project page, shown only when a
-  URL exists.
-- **Out of scope:** file tree, terminal, zip.
-- **Done when:** "build a landing page with a counter" ends with the button opening
-  the app in a new tab, and a follow-up request hot-reloads it.
+- **Scope:** `start_dev` runs the model-selected command, exposes its port, and returns
+  its URL; Open app reads that result from Eve's stream.
+- **Out of scope:** process supervision, restore, stop, sandbox cleanup, file tree, terminal, zip.
+- **Done when:** "build a Vite landing page with a counter" ends with the button opening
+  the app in a new tab and a follow-up request hot-reloads it while the server lives.
 - **Reads:** Principles 5 and 8, Coding harness, docs/sandbox.md (URL resolution).
 
 ### Phase 4 — Zip download
 
 - **Goal:** take your code home.
-- **Scope:** the sandbox-server seeded with the template, serving the zip route with
-  its handshake token; Download button on the project page.
+- **Scope:** a tiny sandbox-server serving the zip route with its handshake token;
+  Download button on the project page.
 - **Out of scope:** the pty/terminal half of sandbox-server.
 - **Done when:** the downloaded zip unpacks into the working project, excluding
   node_modules.
@@ -134,7 +125,7 @@ Throwaway code; the deliverable is answers written into the docs.
 ### Phase 7 — Human-in-the-loop
 
 - **Goal:** risky commands ask first.
-- **Scope:** the `approval` policy added to the existing `bash` override;
+- **Scope:** a thin `bash` override adding only the `approval` policy;
   approve/deny UI in the conversation (inherited input-request pattern); policy for what
   needs approval written in instructions.
 - **Out of scope:** per-user policies.
@@ -173,6 +164,6 @@ Throwaway code; the deliverable is answers written into the docs.
 - Multiple sessions per project: one Eve sandbox per session, a project preview sandbox,
   local git syncing commits between them. Verified feasible — the mechanics are in
   docs/sandbox.md and the design in ARCHITECTURE.md's Later.
-- Skills per stack (vite-app, python-script, api-server) when instructions outgrow
-  one file; Eve evals in CI.
+- More independent stack skills (Next.js, Express, Python) as demand proves them;
+  Eve evals in CI.
 - BYO API key for heavy users; sandbox idle auto-stop tuning if compute dominates.
