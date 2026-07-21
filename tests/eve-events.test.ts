@@ -1,13 +1,64 @@
-import type { HandleMessageStreamEvent } from "eve/client";
+import type { EveMessage, HandleMessageStreamEvent } from "eve/client";
 import { describe, expect, it } from "vitest";
 
 import {
+  getPreview,
   getReasoningTimingKey,
   getToolTimingKey,
   projectActivityTimings,
   projectEveMessages,
   type StoredEveEvent,
 } from "@/lib/eve-events";
+
+function previewMessage(input: unknown, output: unknown): EveMessage {
+  return {
+    parts: [
+      { input, output, state: "output-available", toolName: "start_dev", type: "dynamic-tool" },
+    ],
+  } as unknown as EveMessage;
+}
+
+describe("getPreview", () => {
+  it("returns the latest runnable preview", () => {
+    expect(
+      getPreview([
+        previewMessage(
+          { command: "npm run dev", port: 3000 },
+          { sandboxId: "old-sandbox", url: "https://old.example.com" },
+        ),
+        previewMessage(
+          { command: "bun run dev", port: 5173 },
+          { sandboxId: "live-sandbox", url: "https://live.example.com" },
+        ),
+      ]),
+    ).toEqual({
+      command: "bun run dev",
+      port: 5173,
+      sandboxId: "live-sandbox",
+      url: "https://live.example.com",
+    });
+  });
+
+  it("ignores previews without a valid run configuration", () => {
+    expect(
+      getPreview([previewMessage({}, { url: "https://invalid.example.com" })]),
+    ).toBeUndefined();
+  });
+
+  it("keeps previews from existing chats", () => {
+    expect(
+      getPreview(
+        [
+          previewMessage(
+            { command: "npm run dev", port: 3000 },
+            { url: "https://old.example.com" },
+          ),
+        ],
+        "existing-sandbox",
+      ),
+    ).toMatchObject({ sandboxId: "existing-sandbox" });
+  });
+});
 
 function userEvent(index: number, message: string, at: string): StoredEveEvent {
   return {

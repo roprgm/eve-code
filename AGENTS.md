@@ -49,4 +49,5 @@ priority, and clarity is part of the product.
 - Design is owner-approved. Reuse the existing tokens for color, contrast,
   spacing, and type. Never invent new visual design — any new surface, token, or
   deviation ships only after the owner has seen it and approved it.
+- The app is dark mode only. Do not add light-mode tokens, themes, or assets.
 - Everything in this repository is written in English: code, comments, docs, commits.

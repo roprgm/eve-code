@@ -4,6 +4,7 @@
     "includes": [
       "**",
       "!**/node_modules",
+      "!.claude",
       "!.convex",
       "!.eve",
       "!.output",
@@ -20,9 +21,34 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "preset": "recommended"
+      "preset": "recommended",
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["@pierre/**"],
+                "message": "Pierre imports belong only in the UI primitive and bundler adapters."
+              }
+            ]
+          }
+        }
+      }
     }
   },
+  "overrides": [
+    {
+      "includes": ["components/code/diff-renderer.tsx", "lib/pierre-themes.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": "off"
+          }
+        }
+      }
+    }
+  ],
   "assist": {
     "actions": {
       "source": {

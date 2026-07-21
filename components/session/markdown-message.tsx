@@ -9,7 +9,7 @@ type MarkdownMessageProps = {
 
 const CONTROLS = { table: false } as const;
 
-export function MarkdownMessage({ isAnimating, text }: MarkdownMessageProps) {
+export default function MarkdownMessage({ isAnimating, text }: MarkdownMessageProps) {
   return (
     <Streamdown
       className="model-response wrap-anywhere space-y-2 leading-6 [&_li]:py-0"

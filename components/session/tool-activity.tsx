@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { FileDiff } from "@/components/session/file-diff";
+import Diff from "@/components/code/diff";
 import { ModelActivity } from "@/components/session/model-activity";
 import { useElapsed } from "@/components/session/use-elapsed";
 import { CodeBlock } from "@/components/ui/code-block";
@@ -32,7 +32,7 @@ const TOOL_DEFINITIONS: Readonly<Record<string, ToolDefinition>> = {
   glob: { active: "Listing files", done: "Listed files", icon: Files, input: "pattern" },
   grep: { active: "Searching", done: "Searched", icon: TextSearch, input: "pattern" },
   read_file: { active: "Reading", done: "Read", icon: FileText, input: "filePath" },
-  start_dev: { active: "Starting app", done: "App is live", icon: Globe, input: "command" },
+  start_dev: { active: "Starting", done: "Preview is live", icon: Globe, input: "command" },
   todo: { active: "Updating todos", done: "Updated todos", icon: ListTodo },
   web_fetch: { active: "Fetching", done: "Fetched", icon: Globe, input: "url" },
   write_file: { active: "Creating", done: "Created", icon: FilePen, input: "filePath" },
@@ -83,7 +83,7 @@ function getContent(part: EveDynamicToolPart): ReactNode {
   if (part.toolName === "edit_file") {
     const output = parseFileDiff(part.output);
     if (!output) return null;
-    return <FileDiff patch={output.diff} />;
+    return <Diff patch={output.diff} />;
   }
 
   if (part.toolName !== "bash") return null;

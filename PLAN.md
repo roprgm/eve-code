@@ -13,8 +13,8 @@ Rules for every phase:
 - The deployment stays private (unlisted). Opening it to others waits on the
   identity-and-cost decision (see ARCHITECTURE.md's Later) — it is not a phase.
 - **Design review gates every visible change.** A phase that adds or alters UI is not
-  done until the owner has seen it — screenshots of every new surface and state
-  (light and dark) plus the preview URL — and approved it. Iterate on the feedback
+  done until the owner has seen it — screenshots of every new surface and state plus
+  the preview URL — and approved it. Iterate on the feedback
   inside the phase; design polish is never deferred to a follow-up.
 - If Eve itself is the blocker, do not patch it or work around it in early phases:
   record the friction in ARCHITECTURE.md's Upstream section, deliver the phase within
@@ -82,14 +82,32 @@ Throwaway code; the deliverable is answers written into the docs.
 
 - **Goal:** see the app live.
 - **Scope:** `edit_file` makes batched exact replacements and returns a unified diff;
-  `start_dev` runs the model-selected command, exposes its port, and returns its URL;
-  Open app reads that result from Eve's stream.
-- **Out of scope:** process supervision, restore, stop, sandbox cleanup, file tree, terminal, zip.
-- **Done when:** "build a Vite landing page with a counter" ends with the button opening
-  the app in a new tab and a follow-up request hot-reloads it while the server lives.
+  `start_dev` runs the model-selected command, exposes its port, and returns its sandbox
+  ID and URL; Preview reads the latest result, polls its state, and can stop or restart
+  that command. The desktop project sidebar can collapse to keep the header usable.
+- **Out of scope:** general process supervision, restoring other processes, sandbox
+  cleanup, file tree, terminal, zip.
+- **Done when:** new and existing chats keep Preview available; it opens in a new tab,
+  follows a replacement sandbox, and can stop or restart after idle.
 - **Reads:** Principles 5 and 8, Coding harness, docs/sandbox.md (URL resolution).
 
-### Phase 4 — Zip download
+## Workspace
+
+### Phase 4 — File tree and viewer
+
+- **Goal:** watch the agent's work.
+- **Scope:** a read-only Eve route lists workspace paths and reads one selected text
+  file; a right-side workspace panel renders a file tree and syntax-highlighted
+  read-only viewer with the full path at the top. The panel is lazy-loaded and the
+  tree refreshes after each completed turn.
+- **Out of scope:** editing, rename, drag and drop, Git status, terminal, zip,
+  resizable panels.
+- **Done when:** a file the agent just wrote appears after the turn, selecting it
+  opens the highlighted contents with its full path, keyboard tree navigation works,
+  and the core bundle did not grow.
+- **Reads:** Frontend, Performance (lazy heavyweights), docs/sandbox.md.
+
+### Phase 5 — Zip download
 
 - **Goal:** take your code home.
 - **Scope:** a tiny sandbox-server serving the zip route with its handshake token;
@@ -98,18 +116,6 @@ Throwaway code; the deliverable is answers written into the docs.
 - **Done when:** the downloaded zip unpacks into the working project, excluding
   node_modules.
 - **Reads:** Sandbox server, Principle 8, docs/sandbox.md.
-
-## Workspace
-
-### Phase 5 — Files tab
-
-- **Goal:** watch the agent's work.
-- **Scope:** workspace panel beside the conversation; file tree + read-only Shiki viewer,
-  lazy-loaded, refreshed after each turn.
-- **Out of scope:** editing, terminal.
-- **Done when:** files the agent just wrote are browsable with highlighting, and the
-  core bundle did not grow.
-- **Reads:** Frontend, Performance (lazy heavyweights).
 
 ### Phase 6 — Terminal
 

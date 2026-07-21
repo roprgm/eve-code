@@ -1,5 +1,5 @@
 import { useConvexPaginatedQuery } from "@convex-dev/react-query";
-import { AlignLeft, SquarePen, X } from "lucide-react";
+import { AlignLeft, PanelLeft, SquarePen, X } from "lucide-react";
 import { useState } from "react";
 import { href, useNavigate } from "react-router";
 
@@ -10,22 +10,30 @@ import {
 } from "@/components/projects/project-sidebar-item";
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
-import { useComposerStore } from "@/lib/composer-store";
 import { cn } from "@/lib/utils";
 
 type ProjectSidebarProps = {
+  readonly isCollapsed: boolean;
   readonly isOpen: boolean;
   readonly onClose: () => void;
+  readonly onNewProject: () => void;
+  readonly onToggle: () => void;
   readonly selectedProjectId: string | null;
 };
 
-export function ProjectSidebar({ isOpen, onClose, selectedProjectId }: ProjectSidebarProps) {
+export function ProjectSidebar({
+  isCollapsed,
+  isOpen,
+  onClose,
+  onNewProject,
+  onToggle,
+  selectedProjectId,
+}: ProjectSidebarProps) {
   const {
     loadMore,
     results: projects,
     status,
   } = useConvexPaginatedQuery(api.projects.list, {}, { initialNumItems: 50 });
-  const setDraft = useComposerStore((state) => state.setDraft);
   const navigate = useNavigate();
   const [deleteTarget, setDeleteTarget] = useState<ProjectSummary>();
 
@@ -38,12 +46,6 @@ export function ProjectSidebar({ isOpen, onClose, selectedProjectId }: ProjectSi
     if (selectedProjectId !== projectId) return;
     onClose();
     void navigate(href("/"));
-  }
-
-  function openNewProject(): void {
-    setDraft("");
-    onClose();
-    void navigate("/");
   }
 
   return (
@@ -59,9 +61,12 @@ export function ProjectSidebar({ isOpen, onClose, selectedProjectId }: ProjectSi
         type="button"
       />
       <aside
+        id="project-sidebar"
+        inert={isCollapsed}
         className={cn(
-          "invisible fixed inset-y-0 left-0 z-50 flex w-[min(18rem,85vw)] -translate-x-full flex-col border-r bg-sidebar p-3 text-sidebar-foreground shadow-2xl transition md:visible md:static md:z-auto md:w-72 md:translate-x-0 md:p-2 md:shadow-none",
+          "invisible fixed inset-y-0 left-0 z-50 flex w-[min(18rem,85vw)] -translate-x-full flex-col overflow-hidden border-r bg-sidebar p-3 text-sidebar-foreground shadow-2xl transition-[width,transform,padding] md:visible md:static md:z-auto md:w-72 md:translate-x-0 md:p-2 md:shadow-none",
           isOpen && "visible translate-x-0",
+          isCollapsed && "md:w-0 md:border-r-0 md:p-0",
         )}
       >
         <div className="flex h-10 shrink-0 items-center justify-between px-2">
@@ -71,17 +76,28 @@ export function ProjectSidebar({ isOpen, onClose, selectedProjectId }: ProjectSi
           </div>
           <Button
             aria-label="Close projects"
-            className="text-muted-foreground md:hidden"
+            className="size-8 text-muted-foreground md:hidden [&_svg]:size-4"
             onClick={onClose}
             size="icon-sm"
             variant="ghost"
           >
             <X aria-hidden="true" />
           </Button>
+          <Button
+            aria-controls="project-sidebar"
+            aria-expanded="true"
+            aria-label="Collapse projects"
+            className="hidden size-8 text-muted-foreground md:inline-flex [&_svg]:size-4"
+            onClick={onToggle}
+            size="icon-sm"
+            variant="ghost"
+          >
+            <PanelLeft aria-hidden="true" />
+          </Button>
         </div>
         <button
           className="mt-4 flex h-9 w-full shrink-0 cursor-pointer items-center gap-2.5 rounded-md px-2 text-left outline-none transition-colors hover:bg-sidebar-hover focus-visible:bg-sidebar-hover md:h-7"
-          onClick={openNewProject}
+          onClick={onNewProject}
           type="button"
         >
           <SquarePen aria-hidden="true" className="text-muted-foreground" />

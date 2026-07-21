@@ -4,6 +4,8 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 const rootDirectory = fileURLToPath(new URL(".", import.meta.url));
+const pierreShiki = fileURLToPath(new URL("./lib/pierre-shiki.ts", import.meta.url));
+const pierreThemes = fileURLToPath(new URL("./lib/pierre-themes.ts", import.meta.url));
 
 export default defineConfig({
   root: "app",
@@ -18,9 +20,11 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      "@": rootDirectory,
-    },
+    alias: [
+      { find: /^shiki$/, replacement: pierreShiki },
+      { find: "@pierre/theming/themes", replacement: pierreThemes },
+      { find: "@", replacement: rootDirectory },
+    ],
   },
   build: {
     outDir: "../dist",

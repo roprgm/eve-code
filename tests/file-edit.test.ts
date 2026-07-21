@@ -1,4 +1,4 @@
-import { getSingularPatch } from "@pierre/diffs";
+import { parsePatch } from "diff";
 import type { ToolContext } from "eve/tools";
 import { describe, expect, it } from "vitest";
 
@@ -50,7 +50,7 @@ describe("file edits", () => {
     expect(result.diff).toContain("-line 2");
     expect(result.diff).toContain("+changed");
     expect(result.diff.split("\n").filter((line) => line.startsWith("@@"))).toHaveLength(2);
-    expect(getSingularPatch(result.diff).name).toBe("src/style.css");
+    expect(parsePatch(result.diff)[0]?.newFileName).toBe("src/style.css");
   });
 
   it("serializes the complete read-modify-write for each file", async () => {

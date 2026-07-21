@@ -62,8 +62,8 @@ Convex (projects, sessions,     dev server    sandbox-server
    app responds — before the root agent declares a request finished. Delegation shown
    on a task that genuinely benefits from it.
 8. **Seeing the result costs no UI.** Output lives in the chat stream and the shared
-   terminal. When a port is exposed, an "Open app" button opens the real app in a new
-   browser tab — full window, real URL, the dev server's own HMR. No iframes.
+   terminal. When a port is exposed, a "Preview" button opens it in a new browser tab —
+   full window, real URL, the dev server's own HMR. No iframes.
 9. **Persistence is a hook, not the browser.** Eve owns the live turn; a hook
    replays the durable stream and commits one compact checkpoint per turn to Convex.
    These functions remain public while the demo has no user authentication. Tool
@@ -98,7 +98,8 @@ is a handful of small deltas, each a few lines:
 - **`edit_file`** — batched exact replacement via `ctx.getSandbox()`. Every old string
   matches exactly once in the original snapshot, edits cannot overlap, and the
   stored result is a context-limited unified diff.
-- **`start_dev`** — spawn the model-selected command, expose its port, and return its URL.
+- **`start_dev`** — spawn the model-selected command, expose its port, and return its
+  sandbox ID and URL.
 - **Instructions** — the discipline that multiplies the tools: use the built-in
   `todo` list for multi-step work; verify before claiming done (build passes, dev
   server answers); prefer `edit_file` over rewrites; read before editing.
@@ -109,7 +110,7 @@ phase proves the need.
 ## Sandbox server
 
 One tiny server inside the sandbox, guarded by a random token. Spawned processes do
-not survive a sandbox resume; the UI explains how to start it again when needed:
+not survive a sandbox resume; Preview restarts only its latest `start_dev` command:
 
 ```
 Browser ── xterm.js ── wss://…/?token=… ──▶ pty (bash)
@@ -132,10 +133,10 @@ and every new surface passes design review before it lands (see AGENTS.md and th
 plan's phase rules).
 
 - **Home** — your projects, newest first, and a composer that creates one.
-- **Project** — the conversation beside a workspace: Open app, Files (tree +
-  read-only Shiki viewer; CodeMirror later), Terminal, Download zip. All workspace
-  state comes from Eve's stream and the current sandbox. Open app uses the latest
-  `start_dev` result.
+- **Project** — the conversation beside a workspace: Preview, Files (tree +
+  read-only highlighted viewer; CodeMirror later), Terminal, Download zip. All workspace
+  state comes from Eve's stream and the current sandbox. The preview control uses the
+  latest `start_dev` result to run, stop, and open the preview.
 - **Activity** — while the agent works, the conversation shows what it is doing as
   distinct activities sourced from the stream events — thinking, running a
   command, reading or editing a file — each with its elapsed time. A single
@@ -157,9 +158,8 @@ work is refusing to bypass it:
 - **Streaming everywhere.** Turns and the latest preview URL render from Eve's stream.
 - **Stack-specific installs.** New sandboxes stay empty; a skill installs only the
   selected framework, and the persistent filesystem reuses it on later turns.
-- **Lazy heavyweights.** xterm, Shiki, and later CodeMirror load with the tab that
-  needs them, never with the conversation. The core bundle stays small because the dependency
-  list stays small.
+- **Lazy heavyweights.** xterm, Shiki, and later CodeMirror load only with content
+  that needs them. The core bundle stays small because the dependency list stays small.
 
 ## Structure and layers
 
@@ -182,6 +182,7 @@ lib/            shared pure logic: identities, event shapes, stores, utilities.
                 Runs in browser, agent, and Convex alike — so no React, no JSX,
                 no component imports, no business UI. Imports: npm packages, lib.
 components/
+  code/         feature components for source and diff rendering.
   ui/           generic primitives (button, dialog, …). Style-level only: no domain
                 words, no Convex, no app state. Imports: react, lib/utils, ui.
   session/      feature components for the conversation.
@@ -214,6 +215,8 @@ Module design — how the map grows without rotting:
   appears. Speculative "shared" modules are how dead layers are born.
 - **Import the module, not a barrel.** No `index.ts` re-exports — every import names
   the exact file it needs, so the dependency graph stays visible in the imports.
+- **Vendor renderers stay behind feature boundaries.** Code rendering lives in
+  `components/code/`; consumers import its facade, not the vendor implementation.
 - **Hooks live with their feature** (`components/session/use-session.ts`), not in
   a global hooks folder.
 - **In `convex/`, one file per resource** (`projects.ts`, `persistence.ts`),
@@ -233,7 +236,7 @@ New — kept deliberately short:
 - `@vercel/sandbox` — expose the Eve sandbox's preview port and resolve its URL
 - `@pierre/diffs` + `diff` — render and create context-limited unified diffs
 - `@xterm/xterm` + `@xterm/addon-fit` — terminal client
-- `shiki` — read-only file viewer (already transitive via streamdown)
+- `shiki` — lazy syntax highlighting with one theme (already transitive)
 - `@codemirror/*` — editing, later phase; chosen over Monaco for size and modularity
 
 Deliberately avoided: Express/Hono (Eve is the backend), direct LLM SDKs (Eve + AI

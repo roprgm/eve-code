@@ -30,7 +30,8 @@ await vercelSandbox.update({ ports: [port] });
 const url = vercelSandbox.domain(port);
 ```
 
-`start_dev` is the only place the product touches `@vercel/sandbox` directly.
+`start_dev` and the Preview control channel are the only places the product touches
+`@vercel/sandbox` directly.
 
 ## Traffic
 
@@ -47,8 +48,9 @@ const url = vercelSandbox.domain(port);
 - **Processes do not survive.** Anything spawned (dev server, helper servers) is
   gone after a resume.
 
-This demo does not add its own lifecycle layer. The agent calls `start_dev` on each
-web turn, and the user can ask it to restart a preview after an idle-out.
+The project header polls the sandbox status through the Eve service. Preview can stop
+the VM, then resume it and restart the latest `start_dev` command. It does not supervise
+or restore any other process.
 
 ## Snapshots and forks
 
