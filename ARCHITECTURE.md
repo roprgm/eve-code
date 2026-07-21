@@ -49,9 +49,9 @@ Convex (projects, sessions,     dev server    sandbox-server
 3. **The sandbox is Eve's sandbox.** `agent/sandbox.ts` selects the `vercel()` backend
    and leaves `/workspace` empty. No framework, seed, or bootstrap of ours; the
    filesystem persists with the session and Eve owns its lifecycle.
-4. **The agent's hands are Eve's built-in tools.** `bash`, `read_file`, `write_file`,
-   `glob`, `grep` come with the sandbox. We add only what is missing: `edit_file`
-   (exact string replacement) and `start_dev` (spawn the dev server, publish its URL).
+4. **The agent's hands start with Eve's built-in tools.** `bash`, `read_file`, `glob`,
+   and `grep` come with the sandbox. We restrict `write_file` to creation and add only
+   `edit_file` (exact replacement) and `start_dev` (spawn and publish the dev server).
 5. **The agent builds anything.** Every project starts empty. The requested stack is
    selected first, then its dependencies are installed. Optional Eve skills provide
    quick starts without making one framework the default.
@@ -95,10 +95,9 @@ nothing reads it to limit anyone.
 Eve's built-ins are the base. What separates a correct agent from an efficient one
 is a handful of small deltas, each a few lines:
 
-- **`edit_file`** — exact string replacement via `ctx.getSandbox()`. Strict: the old
-  string must match exactly once (fail loudly on zero or many matches), and the
-  result echoes the changed region so the model sees what it did. Cheaper and safer
-  than rewriting whole files.
+- **`edit_file`** — batched exact replacement via `ctx.getSandbox()`. Every old string
+  matches exactly once in the original snapshot, edits cannot overlap, and the
+  stored result is a context-limited unified diff.
 - **`start_dev`** — spawn the model-selected command, expose its port, and return its URL.
 - **Instructions** — the discipline that multiplies the tools: use the built-in
   `todo` list for multi-step work; verify before claiming done (build passes, dev
@@ -232,13 +231,14 @@ streamdown, zustand, biome, bun, vitest.
 New — kept deliberately short:
 
 - `@vercel/sandbox` — expose the Eve sandbox's preview port and resolve its URL
+- `@pierre/diffs` + `diff` — render and create context-limited unified diffs
 - `@xterm/xterm` + `@xterm/addon-fit` — terminal client
 - `shiki` — read-only file viewer (already transitive via streamdown)
 - `@codemirror/*` — editing, later phase; chosen over Monaco for size and modularity
 
-Deliberately avoided: Express/Hono (Eve is the backend), diff/patch libraries
-(string-replace edits), direct LLM SDKs (Eve + AI Gateway), iframes (real tabs), log
-panels (the terminal and the chat stream are the output).
+Deliberately avoided: Express/Hono (Eve is the backend), direct LLM SDKs (Eve + AI
+Gateway), iframes (real tabs), log panels (the terminal and the chat stream are the
+output).
 
 ## Upstream
 

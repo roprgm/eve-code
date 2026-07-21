@@ -10,6 +10,9 @@ rooted at `/workspace`), plus `web_fetch`, `todo`, `ask_question`, `load_skill`,
 `agent` (subagent delegation). `write_file` enforces read-before-write. There is no
 built-in string-replacement edit tool — `edit_file` is ours.
 
+`edit_file` batches unique, non-overlapping replacements against one file snapshot.
+It serializes edits per file and stores a context-limited unified diff for the UI.
+
 ## Overriding a built-in
 
 A file at the same slug takes over the built-in. This is how `bash` gets an approval

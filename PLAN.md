@@ -81,8 +81,9 @@ Throwaway code; the deliverable is answers written into the docs.
 ### Phase 3 — Custom tools and preview
 
 - **Goal:** see the app live.
-- **Scope:** `start_dev` runs the model-selected command, exposes its port, and returns
-  its URL; Open app reads that result from Eve's stream.
+- **Scope:** `edit_file` makes batched exact replacements and returns a unified diff;
+  `start_dev` runs the model-selected command, exposes its port, and returns its URL;
+  Open app reads that result from Eve's stream.
 - **Out of scope:** process supervision, restore, stop, sandbox cleanup, file tree, terminal, zip.
 - **Done when:** "build a Vite landing page with a counter" ends with the button opening
   the app in a new tab and a follow-up request hot-reloads it while the server lives.
@@ -148,7 +149,7 @@ Throwaway code; the deliverable is answers written into the docs.
 
 - **Goal:** human and agent edit interchangeably.
 - **Scope:** CodeMirror replacing the read-only viewer, lazy-loaded; save uses the
-  same write path as the agent; `edit_file` calls rendered as diffs in the conversation.
+  same write path as the agent; build on the existing `edit_file` diff rendering.
 - **Done when:** a human edit hot-reloads the preview, and the agent's next edit
   builds on it.
 - **Reads:** Frontend, Performance, Dependencies.

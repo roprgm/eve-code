@@ -92,4 +92,24 @@ describe("compactTurn checkpoint", () => {
     );
     expect(checkpoint.usage).toEqual({ inputTokens: 230, outputTokens: 35 });
   });
+
+  it("preserves stored edit diffs", () => {
+    const action = event("action.result", {
+      result: {
+        callId: "call-1",
+        kind: "tool-result",
+        output: {
+          diff: "@@ -1 +1 @@\n-red\n+blue",
+        },
+        toolName: "edit_file",
+      },
+      stepIndex: 0,
+      turnId: "turn-1",
+    });
+    const checkpoint = compactTurn(
+      [start, action, event("turn.completed", { turnId: "turn-1" }), waiting],
+      0,
+    );
+    expect(checkpoint.events).toContainEqual({ event: action, index: 1 });
+  });
 });

@@ -10,10 +10,14 @@ import {
   TextSearch,
   Wrench,
 } from "lucide-react";
+import type { ReactNode } from "react";
 
+import { FileDiff } from "@/components/session/file-diff";
 import { ModelActivity } from "@/components/session/model-activity";
 import { useElapsed } from "@/components/session/use-elapsed";
+import { CodeBlock } from "@/components/ui/code-block";
 import type { ActivityTiming } from "@/lib/eve-events";
+import { parseFileDiff } from "@/lib/file-diff";
 
 type ToolDefinition = {
   readonly active: string;
@@ -24,13 +28,14 @@ type ToolDefinition = {
 
 const TOOL_DEFINITIONS: Readonly<Record<string, ToolDefinition>> = {
   bash: { active: "Running", done: "Ran", icon: Terminal, input: "command" },
+  edit_file: { active: "Editing", done: "Edited", icon: FilePen, input: "filePath" },
   glob: { active: "Listing files", done: "Listed files", icon: Files, input: "pattern" },
   grep: { active: "Searching", done: "Searched", icon: TextSearch, input: "pattern" },
   read_file: { active: "Reading", done: "Read", icon: FileText, input: "filePath" },
   start_dev: { active: "Starting app", done: "App is live", icon: Globe, input: "command" },
   todo: { active: "Updating todos", done: "Updated todos", icon: ListTodo },
   web_fetch: { active: "Fetching", done: "Fetched", icon: Globe, input: "url" },
-  write_file: { active: "Writing", done: "Wrote", icon: FilePen, input: "filePath" },
+  write_file: { active: "Creating", done: "Created", icon: FilePen, input: "filePath" },
 };
 
 function getInputString(input: unknown, field: string): string | undefined {
@@ -69,17 +74,27 @@ function getLabel(
   return definition.done;
 }
 
-function getDetails(part: EveDynamicToolPart): string | undefined {
-  if (part.state === "output-error") return part.errorText;
-  if (part.state !== "output-available") return;
-  if (part.toolName !== "bash") return;
+function getContent(part: EveDynamicToolPart): ReactNode {
+  if (part.state === "output-error") {
+    return <CodeBlock>{part.errorText}</CodeBlock>;
+  }
+  if (part.state !== "output-available") return null;
+
+  if (part.toolName === "edit_file") {
+    const output = parseFileDiff(part.output);
+    if (!output) return null;
+    return <FileDiff patch={output.diff} />;
+  }
+
+  if (part.toolName !== "bash") return null;
   const stdout = getInputString(part.output, "stdout") ?? "";
   const stderr = getInputString(part.output, "stderr") ?? "";
   const output = [stdout, stderr]
     .map((text) => text.trim())
     .filter(Boolean)
     .join("\n");
-  if (output) return output;
+  if (!output) return null;
+  return <CodeBlock>{output}</CodeBlock>;
 }
 
 type ToolActivityProps = {
@@ -93,7 +108,8 @@ export function ToolActivity({ isActive, part, timing }: ToolActivityProps) {
   const elapsed = useElapsed(timing, isRunning);
   const definition = getToolDefinition(part.toolName);
   const label = getLabel(part, definition, isRunning);
-  const details = getDetails(part);
+  const content = getContent(part);
+  const isExpanded = part.toolName === "edit_file" && part.state === "output-available";
 
   return (
     <ModelActivity
@@ -101,13 +117,10 @@ export function ToolActivity({ isActive, part, timing }: ToolActivityProps) {
       elapsed={elapsed}
       icon={definition.icon}
       isAnimated={isRunning}
+      isExpanded={isExpanded}
       label={label}
     >
-      {details && (
-        <pre className="app-scrollbar scroll-fade max-h-64 overflow-y-auto wrap-anywhere whitespace-pre-wrap font-mono text-sm">
-          {details}
-        </pre>
-      )}
+      {content}
     </ModelActivity>
   );
 }

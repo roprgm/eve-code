@@ -7,6 +7,7 @@ type ModelActivityProps = {
   readonly elapsed?: string;
   readonly icon: LucideIcon;
   readonly isAnimated: boolean;
+  readonly isExpanded?: boolean;
   readonly label: string;
 };
 
@@ -16,7 +17,7 @@ function ActivitySummary({
   icon: Icon,
   isAnimated,
   label,
-}: Omit<ModelActivityProps, "children">) {
+}: Omit<ModelActivityProps, "children" | "isExpanded">) {
   return (
     <>
       <Icon aria-hidden="true" className="shrink-0 self-center" />
@@ -35,6 +36,7 @@ export function ModelActivity({
   elapsed,
   icon,
   isAnimated,
+  isExpanded,
   label,
 }: ModelActivityProps) {
   const summary = (
@@ -46,6 +48,9 @@ export function ModelActivity({
       label={label}
     />
   );
+  const contentClassName = isExpanded
+    ? "mt-1 max-w-3xl"
+    : "mt-1 ml-2 max-w-3xl border-l pl-3 text-muted-foreground";
 
   if (!children) {
     return (
@@ -60,7 +65,7 @@ export function ModelActivity({
   }
 
   return (
-    <details className="reasoning-details group">
+    <details className="reasoning-details group open:pb-1" open={isExpanded}>
       <summary className="flex cursor-pointer list-none items-baseline gap-2 rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
         {summary}
         <ChevronRight
@@ -68,7 +73,7 @@ export function ModelActivity({
           className="shrink-0 self-center transition-transform group-open:rotate-90"
         />
       </summary>
-      <div className="mt-2 ml-2 max-w-3xl border-l pl-3 text-muted-foreground">{children}</div>
+      <div className={contentClassName}>{children}</div>
     </details>
   );
 }

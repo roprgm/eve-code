@@ -6,6 +6,7 @@ priority, and clarity is part of the product.
 
 - Build the smallest correct solution, in the fewest lines that stay obvious. Every line,
   abstraction, state value, effect, component, file, and dependency must earn its place.
+- Ask before adding runtime compatibility for legacy stored data; prefer one-time cleanup.
 - Keep components and functions small, with one clear responsibility, small explicit
   inputs, and linear flow. If something needs to understand nested or partially defined
   data outside its concern, fix the boundary or the data model instead.
