@@ -1,5 +1,5 @@
 ---
-description: Use only when the user explicitly requests Vite or the existing project already uses Vite; never for generic web apps, Next.js, Express, or Python.
+description: Create a minimal vanilla Vite app in an empty workspace, configured for the sandbox preview.
 ---
 
 Inspect `/workspace` first. If a project exists, never reinitialize or overwrite it.

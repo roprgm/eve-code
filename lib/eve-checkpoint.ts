@@ -1,5 +1,8 @@
 import { type HandleMessageStreamEvent, isCurrentTurnBoundaryEvent } from "eve/client";
 
+import { getStringProperty } from "@/lib/object";
+import { joinNonEmptyLines } from "@/lib/text";
+
 type Entry = { readonly event: HandleMessageStreamEvent; readonly index: number };
 
 export type TurnUsage = { readonly inputTokens: number; readonly outputTokens: number };
@@ -15,9 +18,7 @@ function checkpointStatus(
 
 function getTurnId(event: HandleMessageStreamEvent): string | undefined {
   if (!("data" in event)) return;
-  const data: unknown = event.data;
-  if (!data || typeof data !== "object" || !("turnId" in data)) return;
-  if (typeof data.turnId === "string") return data.turnId;
+  return getStringProperty(event.data, "turnId");
 }
 
 function sumUsage(events: readonly HandleMessageStreamEvent[]): TurnUsage {
@@ -74,10 +75,7 @@ export function compactTurn(events: readonly HandleMessageStreamEvent[], startIn
   const compactEvents = [...settled, ...partial.values()].sort(
     (left, right) => left.index - right.index,
   );
-  const searchText = compactEvents
-    .map(({ event }) => searchableText(event).trim())
-    .filter(Boolean)
-    .join("\n");
+  const searchText = joinNonEmptyLines(compactEvents.map(({ event }) => searchableText(event)));
   return {
     events: compactEvents,
     searchText,

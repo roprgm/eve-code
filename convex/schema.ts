@@ -4,24 +4,22 @@ import { v } from "convex/values";
 const storedEvent = v.object({ event: v.any(), index: v.number() });
 
 export default defineSchema({
-  projects: defineTable({
-    name: v.string(),
-    projectId: v.string(),
-    updatedAt: v.number(),
-  })
-    .index("by_project_id", ["projectId"])
-    .index("by_updated_at", ["updatedAt"]),
-
   sessions: defineTable({
     continuationToken: v.optional(v.string()),
     eveSessionId: v.optional(v.string()),
-    projectId: v.string(),
+    name: v.string(),
     sessionId: v.string(),
-    status: v.union(v.literal("ready"), v.literal("running"), v.literal("error")),
+    status: v.union(
+      v.literal("ready"),
+      v.literal("running"),
+      v.literal("stopping"),
+      v.literal("error"),
+    ),
     streamIndex: v.number(),
+    updatedAt: v.number(),
   })
-    .index("by_project_id", ["projectId"])
-    .index("by_session_id", ["sessionId"]),
+    .index("by_session_id", ["sessionId"])
+    .index("by_updated_at", ["updatedAt"]),
 
   turns: defineTable({
     events: v.array(storedEvent),

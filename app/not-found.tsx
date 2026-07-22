@@ -10,7 +10,7 @@ export function NotFoundPage({ title = "Page not found" }: { readonly title?: st
       <div>
         <h1 className="font-medium">{title}</h1>
         <Button className="mt-4" onClick={() => void navigate("/")} variant="outline">
-          Start a new project
+          Start a new session
         </Button>
       </div>
     </main>

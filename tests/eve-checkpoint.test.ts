@@ -93,7 +93,7 @@ describe("compactTurn checkpoint", () => {
     expect(checkpoint.usage).toEqual({ inputTokens: 230, outputTokens: 35 });
   });
 
-  it("preserves stored edit diffs", () => {
+  it("preserves stored file diffs", () => {
     const action = event("action.result", {
       result: {
         callId: "call-1",

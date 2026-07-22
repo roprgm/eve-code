@@ -10,29 +10,16 @@ rooted at `/workspace`), plus `web_fetch`, `todo`, `ask_question`, `load_skill`,
 `agent` (subagent delegation). `write_file` enforces read-before-write. There is no
 built-in string-replacement edit tool — `edit_file` is ours.
 
+`write_file` preserves Eve's overwrite safeguards and stores a diff for replacements.
 `edit_file` batches unique, non-overlapping replacements against one file snapshot.
-It serializes edits per file and stores a context-limited unified diff for the UI.
+Both serialize mutations per file and keep their UI diffs bounded.
 
 ## Overriding a built-in
 
-A file at the same slug takes over the built-in. This is how `bash` gets an approval
-policy:
-
-```ts
-// agent/tools/bash.ts
-import { bash } from "eve/tools/defaults";
-import { defineTool } from "eve/tools";
-
-export default defineTool({
-  ...bash,
-  approval: (ctx) => isDestructive(ctx.toolInput) ? "user-approval" : "not-applicable",
-});
-```
-
-Approval helpers from `eve/tools/approval`: `always()`, `once()`, `never()`. Custom
-policies receive `{ session, toolName, toolInput, approvedTools, callId }` and may
-return `"user-approval"`, `"not-applicable"`, `"approved"`, or `"denied"`. Gating a
-side effect on approval also protects it from step replays.
+A file at the same slug takes over the built-in. The local `bash` and `write_file`
+tools spread Eve's definitions and replace only the behavior the product needs.
+Approval policies can be added independently in Phase 7 with the helpers from
+`eve/tools/approval`: `always()`, `once()`, and `never()`.
 
 ## Sandbox definition
 
@@ -68,8 +55,9 @@ the terminal if direct browser-to-sandbox WebSockets ever misbehave.
 
 ## Persistence pattern
 
-Eve owns the live turn. A hook on `turn.started` marks the chat running; hooks on
-`session.completed` / `session.failed` / `session.waiting` replay the durable stream
-from the last cursor via `eve/client` and commit one compact checkpoint to Convex.
-The browser never finalizes persistence. Authentication is deferred until the app
-has user accounts; these Convex functions are public during the demo phase.
+Eve owns the live turn. Before a retry, the browser clears the recoverable error;
+`turn.started` then attaches Eve's identity and marks a ready session running. Hooks
+on `session.completed` / `session.failed` / `session.waiting` replay the durable
+stream from the last cursor via `eve/client` and commit one compact checkpoint to
+Convex. The browser never finalizes persistence. Authentication is deferred until
+the app has user accounts; these Convex functions are public during the demo phase.

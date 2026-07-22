@@ -2,10 +2,11 @@ import { Sandbox } from "@vercel/sandbox";
 import { DELETE, defineChannel, GET, POST } from "eve/channels";
 import { z } from "zod";
 
+import { runDetachedWorkspaceCommand } from "@/agent/bash-command";
+import { previewRunSchema } from "@/lib/preview";
+
 const route = "/eve/v1/sandbox/:sandboxId";
 const sandboxIdSchema = z.string().min(1).max(256);
-const portSchema = z.number().int().min(1).max(65_535);
-const runSchema = z.object({ command: z.string().trim().min(1).max(500), port: portSchema });
 
 type SandboxMatch = { readonly name: string; readonly status: Sandbox["status"] };
 
@@ -55,17 +56,12 @@ export default defineChannel({
       const sandboxId = getSandboxId(params);
       if (!sandboxId) return invalidSandbox();
       const body = await request.json().catch(() => undefined);
-      const input = runSchema.safeParse(body);
+      const input = previewRunSchema.safeParse(body);
       if (!input.success) return Response.json({ error: "Invalid run command." }, { status: 400 });
       const sandbox = await getSandbox(sandboxId, true);
       if (!sandbox) return Response.json({ error: "Sandbox not found." }, { status: 404 });
       await sandbox.update({ ports: [input.data.port] });
-      await sandbox.runCommand({
-        args: ["-lc", input.data.command],
-        cmd: "bash",
-        cwd: "/workspace",
-        detached: true,
-      });
+      await runDetachedWorkspaceCommand(sandbox, input.data.command);
       const url = sandbox.domain(input.data.port);
       await waitForPreview(url);
       return Response.json({ status: sandbox.status, url });

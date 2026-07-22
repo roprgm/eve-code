@@ -133,7 +133,6 @@ async function cancelTurn(sessionId: string, connection: Connection): Promise<vo
   try {
     await connection.session.cancel({ turnId: connection.turnId });
   } catch {
-    connection.status = "ready";
     updateRuntime(sessionId, connection, { error: "Could not stop this conversation." });
   }
 }
@@ -176,7 +175,7 @@ export function sendTurn(
   { beforeSend, sessionState }: SendTurnOptions = {},
 ): void {
   const current = getSessionRuntime(sessionId);
-  if (current?.connection.status === "running") return;
+  if (current && current.connection.status !== "ready") return;
   const state = sessionState ?? current?.connection.session.state;
   const startIndex = Math.max(state?.streamIndex ?? 0, current?.connection.index ?? 0);
   const connection = createConnection(state, startIndex);
@@ -227,6 +226,6 @@ export function clearSessionRuntime(sessionId: string): void {
   });
 }
 
-export function useSessionRuntime(sessionId: string): SessionRuntime | undefined {
-  return useRuntimes((state) => state.sessions[sessionId]);
+export function useSessionRuntime(sessionId: string | undefined): SessionRuntime | undefined {
+  return useRuntimes((state) => (sessionId ? state.sessions[sessionId] : undefined));
 }

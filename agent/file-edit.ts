@@ -1,6 +1,4 @@
-import { createPatch } from "diff";
-
-import type { FileDiff } from "@/lib/file-diff";
+const fileMutations = new Map<string, Promise<void>>();
 
 export type FileEdit = {
   readonly newText: string;
@@ -8,6 +6,21 @@ export type FileEdit = {
 };
 
 type Match = FileEdit & { readonly end: number; readonly start: number };
+
+export async function queueFileMutation<T>(key: string, mutation: () => Promise<T>): Promise<T> {
+  const previous = fileMutations.get(key) ?? Promise.resolve();
+  const result = previous.catch(() => undefined).then(mutation);
+  const settled = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  fileMutations.set(key, settled);
+  try {
+    return await result;
+  } finally {
+    if (fileMutations.get(key) === settled) fileMutations.delete(key);
+  }
+}
 
 function getMatch(original: string, edit: FileEdit, index: number): Match {
   const start = original.indexOf(edit.oldText);
@@ -33,13 +46,4 @@ export function applyFileEdits(original: string, edits: readonly FileEdit[]): st
     end = match.end;
   }
   return result + original.slice(end);
-}
-
-export function computeFileDiff(path: string, original: string, edited: string): FileDiff {
-  const diff = createPatch(path, original, edited, undefined, undefined, {
-    context: 4,
-    timeout: 2_000,
-  });
-  if (!diff) throw new Error("The diff took too long to compute.");
-  return { diff };
 }

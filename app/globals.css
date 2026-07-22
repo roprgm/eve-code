@@ -23,6 +23,7 @@
   --accent: oklch(0.255 0 0);
   --accent-foreground: var(--foreground);
   --destructive: oklch(0.72 0.16 24);
+  --success: #60d199;
   --border: color-mix(in oklch, var(--foreground) 13%, transparent);
   --input: var(--border);
   --ring: var(--muted-foreground);
@@ -50,6 +51,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -87,10 +89,69 @@
     line-height: var(--text-base--line-height);
   }
 
+  a[href],
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
   .lucide {
     width: 14px;
     height: 14px;
   }
+}
+
+[popover] {
+  opacity: 0;
+  scale: 0.98;
+  transition:
+    opacity 120ms ease,
+    scale 120ms ease,
+    display 120ms allow-discrete,
+    overlay 120ms allow-discrete;
+}
+
+[popover]:popover-open {
+  opacity: 1;
+  scale: 1;
+}
+
+@starting-style {
+  [popover]:popover-open {
+    opacity: 0;
+    scale: 0.98;
+  }
+}
+
+.workspace-tree {
+  display: block;
+  height: 100%;
+  --trees-bg-muted-override: var(--sidebar-selected);
+  --trees-bg-override: var(--accent);
+  --trees-border-color-override: var(--border);
+  --trees-fg-muted-override: var(--muted-foreground);
+  --trees-fg-override: var(--foreground);
+  --trees-file-icon-color: var(--muted-foreground);
+  --trees-focus-ring-color-override: var(--muted-foreground);
+  --trees-font-family-override: var(--font-sans);
+  --trees-font-size-override: var(--text-sm);
+  --trees-selected-bg-override: var(--sidebar-selected);
+  --trees-selected-focused-border-color-override: var(--muted-foreground);
+}
+
+.workspace-file {
+  height: 100%;
+  overflow: auto;
+  background: var(--background);
+  --diffs-font-size: var(--text-sm);
+  --diffs-line-height: var(--text-sm--line-height);
+}
+
+.message-diff {
+  --diffs-dark: var(--muted-foreground);
+  --diffs-dark-bg: var(--muted);
+  --diffs-font-size: 11px;
+  --diffs-gap-block: 0px;
+  --diffs-line-height: var(--text-sm--line-height);
 }
 
 .model-response :where(h1, h2, h3, h4, h5, h6) {

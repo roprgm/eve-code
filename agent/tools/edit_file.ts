@@ -1,34 +1,13 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 
-import { applyFileEdits, computeFileDiff } from "@/agent/file-edit";
-
-const MAX_FILE_BYTES = 5_000_000;
-const MAX_OUTPUT_CHARACTERS = 500_000;
-
-const fileMutations = new Map<string, Promise<void>>();
+import { applyFileEdits, queueFileMutation } from "@/agent/file-edit";
+import { computeFileDiff, fileDiffSchema } from "@/lib/file-diff";
 
 const editSchema = z.object({
   newText: z.string().max(100_000),
   oldText: z.string().min(1).max(100_000),
 });
-
-const fileDiffSchema = z.object({ diff: z.string().min(1) });
-
-async function queueFileMutation<T>(key: string, mutation: () => Promise<T>): Promise<T> {
-  const previous = fileMutations.get(key) ?? Promise.resolve();
-  const result = previous.catch(() => undefined).then(mutation);
-  const settled = result.then(
-    () => undefined,
-    () => undefined,
-  );
-  fileMutations.set(key, settled);
-  try {
-    return await result;
-  } finally {
-    if (fileMutations.get(key) === settled) fileMutations.delete(key);
-  }
-}
 
 export default defineTool({
   description:
@@ -45,15 +24,10 @@ export default defineTool({
       ctx.abortSignal.throwIfAborted();
       const original = await sandbox.readTextFile({ abortSignal: ctx.abortSignal, path });
       if (original === null) throw new Error(`File not found: ${filePath}`);
-      if (Buffer.byteLength(original, "utf8") > MAX_FILE_BYTES) {
-        throw new Error("The file is too large to edit safely.");
-      }
 
       const edited = applyFileEdits(original, edits);
       const output = computeFileDiff(filePath, original, edited);
-      if (output.diff.length > MAX_OUTPUT_CHARACTERS) {
-        throw new Error("The resulting diff is too large to store.");
-      }
+      if (!output) throw new Error("The edit did not produce a safe diff.");
 
       ctx.abortSignal.throwIfAborted();
       await sandbox.writeTextFile({ abortSignal: ctx.abortSignal, content: edited, path });

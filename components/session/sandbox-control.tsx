@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
-import { MenuContent, MenuItem } from "@/components/ui/menu";
-import type { Preview } from "@/lib/eve-events";
+import { getMenuAnchorStyle, MenuContent, MenuItem } from "@/components/ui/menu";
+import type { Preview } from "@/lib/preview";
 
 const sandboxSchema = z.object({
   status: z.enum([
@@ -98,17 +98,11 @@ function PreviewControl({
   readonly status: VisibleStatus;
   readonly title?: string;
 }) {
-  const anchor = `--${menuId}`;
   let stopAction: ReactNode;
   if (onStop) {
     stopAction = (
       <div className="mt-1 border-t pt-1">
-        <MenuItem
-          className="text-sm text-destructive"
-          onClick={onStop}
-          popoverTarget={menuId}
-          popoverTargetAction="hide"
-        >
+        <MenuItem className="text-sm text-destructive" onClick={onStop} popoverTarget={menuId}>
           <Power aria-hidden="true" className="size-3.5" />
           Stop preview
         </MenuItem>
@@ -134,16 +128,14 @@ function PreviewControl({
         disabled={disabled}
         popoverTarget={menuId}
         size="icon-sm"
-        style={{ anchorName: anchor }}
+        style={getMenuAnchorStyle(menuId)}
       >
         <ChevronDown aria-hidden="true" />
       </Button>
       <MenuContent
         className="w-48 [position-area:bottom_span-left] [position-try-fallbacks:flip-block]"
         id={menuId}
-        popover="auto"
         side="bottom"
-        style={{ positionAnchor: anchor }}
       >
         <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 px-2 py-1.5 text-xs">
           <span className="text-muted-foreground">Status</span>

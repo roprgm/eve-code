@@ -2,33 +2,32 @@ import { useConvexMutation } from "@convex-dev/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { href, Link } from "react-router";
-import { ProjectSidebarActions } from "@/components/projects/project-sidebar-actions";
+import { SessionSidebarActions } from "@/components/session/sidebar-actions";
 import type { SessionStatus } from "@/components/session/use-session";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 
-export type ProjectSummary = {
-  readonly sessionId: string;
+export type SessionSummary = {
   readonly name: string;
-  readonly projectId: string;
+  readonly sessionId: string;
   readonly status: SessionStatus;
 };
 
-export function ProjectSidebarItem({
+export function SessionSidebarItem({
   isSelected,
   onDelete,
   onNavigate,
-  project,
+  session,
 }: {
   readonly isSelected: boolean;
-  readonly onDelete: (project: ProjectSummary) => void;
+  readonly onDelete: (session: SessionSummary) => void;
   readonly onNavigate: () => void;
-  readonly project: ProjectSummary;
+  readonly session: SessionSummary;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setEditing] = useState(false);
-  const renameProject = useMutation({
-    mutationFn: useConvexMutation(api.projects.rename),
+  const renameSession = useMutation({
+    mutationFn: useConvexMutation(api.sessions.rename),
     onSuccess: () => setEditing(false),
   });
 
@@ -40,12 +39,12 @@ export function ProjectSidebarItem({
 
   function saveName(): void {
     const name = inputRef.current?.value.trim();
-    if (!name || name === project.name) {
+    if (!name || name === session.name) {
       setEditing(false);
       return;
     }
 
-    renameProject.mutate({ name, projectId: project.projectId });
+    renameSession.mutate({ name, sessionId: session.sessionId });
   }
 
   function submit(event: FormEvent<HTMLFormElement>): void {
@@ -55,7 +54,7 @@ export function ProjectSidebarItem({
 
   function cancel(event: KeyboardEvent<HTMLInputElement>): void {
     if (event.key !== "Escape") return;
-    event.currentTarget.value = project.name;
+    event.currentTarget.value = session.name;
     event.currentTarget.blur();
   }
 
@@ -70,11 +69,11 @@ export function ProjectSidebarItem({
       {isEditing && (
         <form className="min-w-0 flex-1 px-2" onSubmit={submit}>
           <input
-            aria-invalid={renameProject.isError}
-            aria-label={`Rename ${project.name}`}
+            aria-invalid={renameSession.isError}
+            aria-label={`Rename ${session.name}`}
             className="w-full bg-transparent outline-none aria-invalid:text-destructive"
-            defaultValue={project.name}
-            disabled={renameProject.isPending}
+            defaultValue={session.name}
+            disabled={renameSession.isPending}
             maxLength={100}
             onBlur={saveName}
             onKeyDown={cancel}
@@ -87,21 +86,21 @@ export function ProjectSidebarItem({
           aria-current={isSelected}
           className="flex h-full min-w-0 flex-1 items-center px-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
           onClick={onNavigate}
-          to={href("/p/:projectId", { projectId: project.projectId })}
+          to={href("/s/:sessionId", { sessionId: session.sessionId })}
         >
-          <span className="block truncate">{project.name}</span>
+          <span className="block truncate">{session.name}</span>
         </Link>
       )}
       {!isEditing && (
-        <ProjectSidebarActions
-          name={project.name}
-          onDelete={() => onDelete(project)}
+        <SessionSidebarActions
+          name={session.name}
+          onDelete={() => onDelete(session)}
           onRename={() => {
-            renameProject.reset();
+            renameSession.reset();
             setEditing(true);
           }}
-          projectId={project.projectId}
-          status={project.status}
+          sessionId={session.sessionId}
+          status={session.status}
         />
       )}
     </div>

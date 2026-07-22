@@ -23,13 +23,6 @@ export type ActivityTiming = {
   readonly startedAt?: number;
 };
 
-export type Preview = {
-  readonly command: string;
-  readonly port: number;
-  readonly sandboxId: string;
-  readonly url: string;
-};
-
 type ProjectedEveMessage = EveMessage & { readonly createdAt?: number };
 
 export function getToolTimingKey(callId: string): string {
@@ -122,37 +115,4 @@ export function projectEveMessages(
     if (timestamp === undefined) return message;
     return { ...message, createdAt: timestamp };
   });
-}
-
-export function getPreview(
-  messages: readonly EveMessage[],
-  fallbackSandboxId?: string,
-): Preview | undefined {
-  let preview: Preview | undefined;
-  for (const message of messages) {
-    for (const part of message.parts) {
-      if (part.type !== "dynamic-tool" || part.toolName !== "start_dev") continue;
-      if (part.state !== "output-available") continue;
-      const input = part.input;
-      const output = part.output;
-      if (!input || typeof input !== "object") continue;
-      if (!output || typeof output !== "object" || !("url" in output)) continue;
-      if (!("command" in input) || typeof input.command !== "string") continue;
-      if (!("port" in input) || typeof input.port !== "number") continue;
-      if (!Number.isInteger(input.port) || input.port < 1 || input.port > 65_535) continue;
-      if (typeof output.url !== "string") continue;
-      let sandboxId = fallbackSandboxId;
-      if ("sandboxId" in output && typeof output.sandboxId === "string") {
-        sandboxId = output.sandboxId;
-      }
-      if (!sandboxId) continue;
-      preview = {
-        command: input.command,
-        port: input.port,
-        sandboxId,
-        url: output.url,
-      };
-    }
-  }
-  return preview;
 }

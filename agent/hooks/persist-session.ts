@@ -6,6 +6,7 @@ import { defineHook, type HookContext } from "eve/hooks";
 import { api } from "@/convex/_generated/api";
 import { compactTurn } from "@/lib/eve-checkpoint";
 import { isPublicId, SESSION_ID_ATTRIBUTE } from "@/lib/identity";
+import { getStringProperty } from "@/lib/object";
 
 type BoundaryEvent = Extract<
   HandleMessageStreamEvent,
@@ -28,17 +29,12 @@ function replayClient(): Client {
   });
 }
 
-function initiatorAttribute(ctx: HookContext, name: string): string | undefined {
-  const value = ctx.session.auth.initiator?.attributes[name];
-  if (typeof value === "string") return value;
-}
-
 async function beginTurn(
   _event: Extract<HandleMessageStreamEvent, { type: "turn.started" }>,
   ctx: HookContext,
 ): Promise<void> {
   if (ctx.session.parent) return;
-  const sessionId = initiatorAttribute(ctx, SESSION_ID_ATTRIBUTE);
+  const sessionId = getStringProperty(ctx.session.auth.initiator?.attributes, SESSION_ID_ATTRIBUTE);
   if (!isPublicId(sessionId)) return;
 
   const client = getPersistenceClient();
@@ -51,7 +47,7 @@ async function beginTurn(
 
 async function commitTurn(event: BoundaryEvent, ctx: HookContext): Promise<void> {
   if (ctx.session.parent) return;
-  const sessionId = initiatorAttribute(ctx, SESSION_ID_ATTRIBUTE);
+  const sessionId = getStringProperty(ctx.session.auth.initiator?.attributes, SESSION_ID_ATTRIBUTE);
   if (!isPublicId(sessionId)) return;
 
   const client = getPersistenceClient();

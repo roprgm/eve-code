@@ -5,13 +5,12 @@ export function createTheme(theme: ThemeDescriptor): ThemeDescriptor {
   return theme;
 }
 
-async function loadPierreDarkTheme() {
-  const { default: theme } = await import("@pierre/theme/pierre-dark");
+async function loadPierreDarkSoftTheme() {
+  const { default: theme } = await import("@pierre/theme/pierre-dark-soft");
   return theme;
 }
 
 export const pierreThemes = createThemeCollection({
-  themes: [{ colorScheme: "dark", load: loadPierreDarkTheme, name: "pierre-dark" }],
+  themes: [{ colorScheme: "dark", load: loadPierreDarkSoftTheme, name: "pierre-dark-soft" }],
 });
-
 export const shikiThemes = createThemeCollection({ themes: [] });

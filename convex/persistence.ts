@@ -1,16 +1,18 @@
 import { ConvexError, v } from "convex/values";
 
-import { type MutationCtx, mutation, type QueryCtx, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { internalMutation, mutation, type QueryCtx, query } from "./_generated/server";
 
 const identity = { eveSessionId: v.string(), sessionId: v.string() };
 const event = v.object({ event: v.any(), index: v.number() });
+const stopRecoveryDelayMs = 20_000;
 
-async function getSession(ctx: Pick<QueryCtx, "db">, sessionId: string, eveSessionId: string) {
+async function getSession(ctx: Pick<QueryCtx, "db">, sessionId: string, eveSessionId?: string) {
   const session = await ctx.db
     .query("sessions")
     .withIndex("by_session_id", (index) => index.eq("sessionId", sessionId))
     .unique();
-  if (session?.eveSessionId && session.eveSessionId !== eveSessionId) {
+  if (eveSessionId && session?.eveSessionId && session.eveSessionId !== eveSessionId) {
     throw new ConvexError("Session id conflict.");
   }
   return session;
@@ -23,15 +25,6 @@ function getTurn(ctx: Pick<QueryCtx, "db">, sessionId: string, turnId: string) {
       index.eq("sessionId", sessionId).eq("turnId", turnId),
     )
     .unique();
-}
-
-async function touchProject(ctx: MutationCtx, projectId: string, at: number): Promise<void> {
-  const project = await ctx.db
-    .query("projects")
-    .withIndex("by_project_id", (index) => index.eq("projectId", projectId))
-    .unique();
-  if (!project) return;
-  await ctx.db.patch(project._id, { updatedAt: Math.max(project.updatedAt, at) });
 }
 
 export const replayState = query({
@@ -51,9 +44,46 @@ export const beginTurn = mutation({
     if (!session) return;
     await ctx.db.patch(session._id, {
       eveSessionId: args.eveSessionId,
-      status: "running",
+      status: session.status === "ready" ? "running" : session.status,
+      updatedAt: Math.max(session.updatedAt, args.startedAt),
     });
-    await touchProject(ctx, session.projectId, args.startedAt);
+  },
+});
+
+export const prepareTurn = mutation({
+  args: { sessionId: v.string(), streamIndex: v.number() },
+  handler: async (ctx, args) => {
+    const session = await getSession(ctx, args.sessionId);
+    if (!session || session.streamIndex !== args.streamIndex) {
+      throw new ConvexError("Session changed before the turn started.");
+    }
+    if (session.status === "stopping") throw new ConvexError("Session is stopping.");
+    if (session.status === "error") await ctx.db.patch(session._id, { status: "ready" });
+  },
+});
+
+export const requestTurnStop = mutation({
+  args: { sessionId: v.string(), streamIndex: v.number() },
+  handler: async (ctx, args) => {
+    const session = await getSession(ctx, args.sessionId);
+    if (!session || session.streamIndex !== args.streamIndex) return false;
+    if (session.status === "stopping") return true;
+    await ctx.db.patch(session._id, { status: "stopping" });
+    await ctx.scheduler.runAfter(
+      stopRecoveryDelayMs,
+      internal.persistence.releaseStoppedTurn,
+      args,
+    );
+    return true;
+  },
+});
+
+export const releaseStoppedTurn = internalMutation({
+  args: { sessionId: v.string(), streamIndex: v.number() },
+  handler: async (ctx, args) => {
+    const session = await getSession(ctx, args.sessionId);
+    if (session?.status !== "stopping" || session.streamIndex !== args.streamIndex) return;
+    await ctx.db.patch(session._id, { status: "error" });
   },
 });
 
@@ -90,7 +120,7 @@ export const commitTurn = mutation({
       continuationToken: args.continuationToken,
       status: args.status,
       streamIndex: args.streamIndex,
+      updatedAt: Math.max(session.updatedAt, args.completedAt),
     });
-    await touchProject(ctx, session.projectId, args.completedAt);
   },
 });

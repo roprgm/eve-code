@@ -21,10 +21,15 @@ export default defineConfig({
   },
   resolve: {
     alias: [
+      { find: "shiki/wasm", replacement: pierreShiki },
       { find: /^shiki$/, replacement: pierreShiki },
       { find: "@pierre/theming/themes", replacement: pierreThemes },
       { find: "@", replacement: rootDirectory },
     ],
+  },
+  optimizeDeps: {
+    exclude: ["@pierre/diffs"],
+    include: ["lru_map"],
   },
   build: {
     outDir: "../dist",
@@ -38,7 +43,7 @@ export default defineConfig({
               test: /node_modules\/(?:react|react-dom|react-router|scheduler)\//,
             },
             {
-              name: "chat-runtime",
+              name: "session-runtime",
               test: /node_modules\/(?:convex|eve)\//,
             },
           ],

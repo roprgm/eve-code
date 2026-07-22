@@ -3,6 +3,8 @@
 > Living document. The work is split into micro-phases: vertical increments sized so
 > one implementing agent can complete one phase in one focused session.
 
+**Current milestone: closing Phase 4.**
+
 Rules for every phase:
 
 - Read AGENTS.md and the ARCHITECTURE.md sections and docs/ files the phase
@@ -11,15 +13,15 @@ Rules for every phase:
 - Fold discoveries back into ARCHITECTURE.md (or docs/) when reality disagrees
   with them.
 - The deployment stays private (unlisted). Opening it to others waits on the
-  identity-and-cost decision (see ARCHITECTURE.md's Later) — it is not a phase.
+  identity-and-cost decision (see ARCHITECTURE.md's Open questions) — it is not a
+  phase.
 - **Design review gates every visible change.** A phase that adds or alters UI is not
   done until the owner has seen it — screenshots of every new surface and state plus
   the preview URL — and approved it. Iterate on the feedback
   inside the phase; design polish is never deferred to a follow-up.
-- If Eve itself is the blocker, do not patch it or work around it in early phases:
-  record the friction in ARCHITECTURE.md's Upstream section, deliver the phase within
-  what Eve offers, and ask the owner when a small Eve change would make a real
-  difference — upstream contact is the owner's call, never the agent's.
+- If Eve itself is the blocker, record the friction before adding code. Prefer an
+  Eve primitive; when the product needs a local adapter, keep it narrow, document
+  its removal path, and let the owner decide any upstream contact.
 
 ## Core loop
 
@@ -35,7 +37,7 @@ Throwaway code; the deliverable is answers written into the docs.
 - **Out of scope:** anything reusable; this code is deleted.
 - **Done when:** the remaining sandbox items disappear from ARCHITECTURE.md's open
   questions, replaced by confirmed mechanisms.
-- **Reads:** Principles, Sandbox server, docs/sandbox.md, Open questions.
+- **Reads:** Current shape, Planned: sandbox server, docs/sandbox.md, Open questions.
 - **Status: done.** Findings recorded in docs/sandbox.md —
   ports, URLs, and WebSockets work; the filesystem survives resume but spawned
   processes do not, so `start_dev` must be called again after resume. One caveat: in-browser HMR
@@ -43,17 +45,15 @@ Throwaway code; the deliverable is answers written into the docs.
 
 ### Phase 1 — Session skeleton
 
-- **Goal:** the eve-vite-convex anatomy, retargeted to projects.
+- **Goal:** the eve-vite-convex anatomy centered on Eve sessions.
 - **Scope:** conversation UI with streaming turns, checkpoint persistence via the
-  Eve hook, data model `projects`, `sessions`, and `turns` — creating a project
-  creates its one session with it — routes `/` and `/p/:projectId` (the project
-  page opens its session), optimistic creation with client-generated IDs. No
-  sandbox.
+  Eve hook, data model `sessions` and `turns`, routes `/` and `/s/:sessionId`, and
+  optimistic creation with a client-generated ID. No sandbox.
 - **Out of scope:** sandbox, tools, workspace UI, auth, any way to add a second
   session.
 - **Done when:** deployed; a conversation streams live, survives reload from Convex,
-  and creating a project navigates instantly.
-- **Reads:** Principles 1-2 and 9, Data model, Frontend, Performance.
+  and creating a session navigates instantly.
+- **Reads:** Current principles 1, 2, and 5; Data model; Frontend; Performance.
 - **Status: done.** Deployed privately (Vercel Authentication; the public
   production domain is removed) with Convex provisioned through Vercel's native
   integration and the Convex URL injected into both service builds by
@@ -72,11 +72,11 @@ Throwaway code; the deliverable is answers written into the docs.
 - **Out of scope:** custom tools, preview, any workspace UI.
 - **Done when:** "add a file explaining this project" results in a file the agent can
   `bash cat` back, in a fresh turn, after a reload.
-- **Reads:** Principles 3-5, Coding harness, docs/eve.md (sandbox definition).
-- **Status: implemented, awaiting owner review.** Empty persistent sandbox
-  (`vercel()` backend), optional stack skills, harness instructions, and the
-  expandable activity stream with distinct timed thinking and tool calls. Pending:
-  owner design review and the end-to-end deployment check.
+- **Reads:** Current principles 1, 3, 4, and 6; Coding harness; docs/eve.md
+  (sandbox definition).
+- **Status: done.** Empty persistent sandbox (`vercel()` backend), optional stack
+  skills, harness instructions, and the expandable activity stream with distinct
+  timed reasoning and tool calls are in place.
 
 ### Phase 3 — Custom tools and preview
 
@@ -84,12 +84,19 @@ Throwaway code; the deliverable is answers written into the docs.
 - **Scope:** `edit_file` makes batched exact replacements and returns a unified diff;
   `start_dev` runs the model-selected command, exposes its port, and returns its sandbox
   ID and URL; Preview reads the latest result, polls its state, and can stop or restart
-  that command. The desktop project sidebar can collapse to keep the header usable.
+  that command. The local `bash` adapter runs a detached command, waits with the turn's
+  abort signal, kills it on Stop, bounds its final output, and streams live logs into
+  the active tool activity. The desktop session sidebar can collapse to keep the
+  header usable.
 - **Out of scope:** general process supervision, restoring other processes, sandbox
-  cleanup, file tree, terminal, zip.
-- **Done when:** new and existing chats keep Preview available; it opens in a new tab,
-  follows a replacement sandbox, and can stop or restart after idle.
-- **Reads:** Principles 5 and 8, Coding harness, docs/sandbox.md (URL resolution).
+  cleanup, approvals, file tree, terminal, zip.
+- **Done when:** new and existing sessions keep Preview available; it opens in a new tab,
+  follows a replacement sandbox, can stop or restart after idle, and stopping a turn
+  kills its active Bash command.
+- **Reads:** Current principles, Coding harness, Framework edges and workarounds,
+  docs/sandbox.md (URL resolution).
+- **Status: done.** Exact editing, lazy diff rendering, live Preview controls,
+  interruptible Bash, and live command output all work against the same Eve sandbox.
 
 ## Workspace
 
@@ -99,23 +106,30 @@ Throwaway code; the deliverable is answers written into the docs.
 - **Scope:** a read-only Eve route lists workspace paths and reads one selected text
   file; a right-side workspace panel renders a file tree and syntax-highlighted
   read-only viewer with the full path at the top. The panel is lazy-loaded and the
-  tree refreshes after each completed turn.
+  tree refreshes after each committed turn.
 - **Out of scope:** editing, rename, drag and drop, Git status, terminal, zip,
   resizable panels.
 - **Done when:** a file the agent just wrote appears after the turn, selecting it
   opens the highlighted contents with its full path, keyboard tree navigation works,
-  and the core bundle did not grow.
+  and the renderer stays off the initial path within the measured bundle budget.
 - **Reads:** Frontend, Performance (lazy heavyweights), docs/sandbox.md.
+- **Status: implementation complete; design review pending.** The tree refreshes
+  from the committed stream index, activity links open files, and binary, missing,
+  oversized, and unsafe paths are handled. With the same `node_modules`, the
+  isolated viewer commit (`9174af1`) moved initial JavaScript
+  from about 213.25 KiB to 214.55 KiB gzip versus `main`: about +1.30 KiB. Pierre and
+  Shiki remain in lazy chunks. This comparison isolates the viewer change; later Bash
+  work is not attributed to Phase 4.
 
 ### Phase 5 — Zip download
 
 - **Goal:** take your code home.
 - **Scope:** a tiny sandbox-server serving the zip route with its handshake token;
-  Download button on the project page.
+  Download button on the session page.
 - **Out of scope:** the pty/terminal half of sandbox-server.
-- **Done when:** the downloaded zip unpacks into the working project, excluding
+- **Done when:** the downloaded zip unpacks into the working workspace, excluding
   node_modules.
-- **Reads:** Sandbox server, Principle 8, docs/sandbox.md.
+- **Reads:** Planned: sandbox server, Current principle 6, docs/sandbox.md.
 
 ### Phase 6 — Terminal
 
@@ -125,20 +139,21 @@ Throwaway code; the deliverable is answers written into the docs.
 - **Out of scope:** multiple terminals, persistence of scrollback.
 - **Done when:** you can `ls` the files the agent created and touch a file the agent
   can then read.
-- **Reads:** Sandbox server, Principle 10, docs/sandbox.md.
+- **Reads:** Planned: sandbox server, docs/sandbox.md.
 
 ## Eve in depth
 
 ### Phase 7 — Human-in-the-loop
 
 - **Goal:** risky commands ask first.
-- **Scope:** a thin `bash` override adding only the `approval` policy;
-  approve/deny UI in the conversation (inherited input-request pattern); policy for what
-  needs approval written in instructions.
+- **Scope:** add Eve's `approval` policy to the existing `bash` adapter; approve/deny
+  UI in the conversation (inherited input-request pattern); policy for what needs
+  approval written in instructions.
 - **Out of scope:** per-user policies.
 - **Done when:** "delete everything and start over" pauses for approval; denying it
-  leaves the project intact.
-- **Reads:** Principle 6, docs/eve.md (overrides and approvals).
+  leaves the workspace intact.
+- **Reads:** Current principle 1, Framework edges and workarounds, docs/eve.md
+  (overrides and approvals).
 
 ### Phase 8 — Reviewer subagent
 
@@ -147,7 +162,7 @@ Throwaway code; the deliverable is answers written into the docs.
   root agent declares a request done; its activity visible in the stream.
 - **Done when:** a request that produces a broken build gets caught and fixed before
   the agent reports success.
-- **Reads:** Principle 7.
+- **Reads:** Current principles 1 and 6, Planned: later phases.
 
 ## Beyond
 
@@ -158,19 +173,19 @@ Throwaway code; the deliverable is answers written into the docs.
   same write path as the agent; build on the existing `edit_file` diff rendering.
 - **Done when:** a human edit hot-reloads the preview, and the agent's next edit
   builds on it.
-- **Reads:** Frontend, Performance, Dependencies.
+- **Reads:** Frontend, Performance, Current dependencies and file-diff rendering.
 
 ## Later
 
 - Identity and cost: whether eve-code runs hosted behind a sign-in or self-hosted
-  from the repo is an open product decision (see ARCHITECTURE.md's Later). Sign-in,
-  ownership, quotas, and opening the deployment to the public all wait on it; the
-  per-turn usage record already feeds it with real numbers.
+  from the repo is an open product decision (see ARCHITECTURE.md's Open questions).
+  Sign-in, ownership, quotas, and opening the deployment to the public all wait on
+  it; the per-turn usage record already feeds it with real numbers.
 - GitHub integration: `git` + `gh` in `bootstrap()`, a user token brokered via
-  `onSession()`, PRs as plain commands. Also waits on identity.
-- Multiple sessions per project: one Eve sandbox per session, a project preview sandbox,
-  local git syncing commits between them. Verified feasible — the mechanics are in
-  docs/sandbox.md and the design in ARCHITECTURE.md's Later.
+  `onSession()`, PRs as plain commands. This is also where repositories become the
+  project boundary and may group multiple sessions, with one Eve sandbox per session
+  and local Git syncing commits between them. The mechanics are verified in
+  docs/sandbox.md and ARCHITECTURE.md's planned later phases.
 - More independent stack skills (Next.js, Express, Python) as demand proves them;
   Eve evals in CI.
 - BYO API key for heavy users; sandbox idle auto-stop tuning if compute dominates.

@@ -1,6 +1,8 @@
+import { useConvexMutation } from "@convex-dev/react-query";
 import type { EveMessage, EveMessagePart, SendTurnPayload, SessionState } from "eve/client";
 import { useEffect, useMemo } from "react";
 
+import { api } from "@/convex/_generated/api";
 import { projectActivityTimings, projectEveMessages, type StoredEveEvent } from "@/lib/eve-events";
 import { findPendingInput, isSessionLimitRequest } from "@/lib/pending-input";
 import {
@@ -12,12 +14,11 @@ import {
   useSessionRuntime,
 } from "@/lib/session-runtime";
 
-export type SessionStatus = "error" | "ready" | "running";
+export type SessionStatus = "error" | "ready" | "running" | "stopping";
 
 export type StoredSession = {
   readonly continuationToken?: string;
   readonly eveSessionId?: string;
-  readonly sessionId: string;
   readonly status: SessionStatus;
   readonly streamIndex: number;
 };
@@ -57,14 +58,14 @@ function sessionError(
   session: StoredSession | undefined,
 ): string | undefined {
   if (limitReached) {
-    return "This conversation reached its token limit. Start a new project to continue.";
+    return "This conversation reached its token limit. Start a new session to continue.";
   }
   if (runtimeError) return runtimeError;
   if (session?.status !== "error") return;
   if (session.continuationToken) {
     return "This conversation stopped unexpectedly. Send another message to try again.";
   }
-  return "This conversation ended unexpectedly. Start a new project to continue.";
+  return "This conversation ended unexpectedly. Start a new session to continue.";
 }
 
 function activityLabel(
@@ -114,14 +115,19 @@ export function useSession({ checkpointEvents, session, sessionId }: UseSessionO
   useEffect(() => {
     if (status === "running" && session) followSession(sessionId, toSessionState(session));
     if (!runtimeStatus || runtimeStatus === "running") return;
-    if (checkpointed) clearSessionRuntime(sessionId);
+    if (checkpointed || status === "error") clearSessionRuntime(sessionId);
   }, [checkpointed, runtimeStatus, session, sessionId, status]);
+
+  const prepareTurn = useConvexMutation(api.persistence.prepareTurn);
+  const requestTurnStop = useConvexMutation(api.persistence.requestTurnStop);
 
   const pendingInput = findPendingInput(messages);
   const visibleInput = availableInput(pendingInput);
   const sessionLimitReached = isSessionLimitRequest(pendingInput);
   const needsOption = Boolean(visibleInput?.options?.length && !visibleInput.allowFreeform);
   const running = (runtimeStatus ?? status) === "running";
+  const stopping = runtimeStatus === "stopped" || status === "stopping";
+  const active = running || stopping;
   const ended = Boolean(session?.eveSessionId && !session.continuationToken);
   const isGenerating = running;
   const error = sessionError(sessionLimitReached, runtime?.error, session);
@@ -129,12 +135,15 @@ export function useSession({ checkpointEvents, session, sessionId }: UseSessionO
   const waitingForCheckpoint = Boolean(runtime?.events.length) && !checkpointed;
   const canSend = canContinue && !waitingForCheckpoint;
   const acceptsText = Boolean(session) && canSend && !needsOption;
-  const disabled = running || !acceptsText;
+  const disabled = active || !acceptsText;
 
   function send(input: SendTurnPayload): void {
     if (!session) return;
-    if (running || !canSend) return;
-    sendTurn(sessionId, input, { sessionState: toSessionState(session) });
+    if (active || !canSend) return;
+    sendTurn(sessionId, input, {
+      beforeSend: prepareTurn({ sessionId, streamIndex: cursor }),
+      sessionState: toSessionState(session),
+    });
   }
 
   function sendMessage(message: string): void {
@@ -150,16 +159,27 @@ export function useSession({ checkpointEvents, session, sessionId }: UseSessionO
     send({ inputResponses: [{ requestId: visibleInput.requestId, optionId }] });
   }
 
+  function stop(): void {
+    void requestTurnStop({ sessionId, streamIndex: cursor }).then(
+      (scheduled) => {
+        if (!scheduled) clearSessionRuntime(sessionId);
+      },
+      () => clearSessionRuntime(sessionId),
+    );
+    void stopSession(sessionId, session && toSessionState(session));
+  }
+
   return {
     answerQuestion,
     activityLabel: activityLabel(isGenerating, messages, Boolean(pendingInput), error),
     disabled,
     error,
     isGenerating,
+    isStopping: stopping,
     messages,
     pendingInput: visibleInput,
     sendMessage,
-    stop: () => stopSession(sessionId, session && toSessionState(session)),
+    stop,
     timings,
   };
 }

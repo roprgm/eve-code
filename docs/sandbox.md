@@ -30,8 +30,8 @@ await vercelSandbox.update({ ports: [port] });
 const url = vercelSandbox.domain(port);
 ```
 
-`start_dev` and the Preview control channel are the only places the product touches
-`@vercel/sandbox` directly.
+Only adapters that need SDK-only operations touch `@vercel/sandbox` directly:
+`start_dev`, Preview control, interruptible Bash, and the read-only workspace channel.
 
 ## Traffic
 
@@ -48,7 +48,7 @@ const url = vercelSandbox.domain(port);
 - **Processes do not survive.** Anything spawned (dev server, helper servers) is
   gone after a resume.
 
-The project header polls the sandbox status through the Eve service. Preview can stop
+The session header polls the sandbox status through the Eve service. Preview can stop
 the VM, then resume it and restart the latest `start_dev` command. It does not supervise
 or restore any other process.
 

@@ -2,13 +2,13 @@ import type { EveMessage, HandleMessageStreamEvent } from "eve/client";
 import { describe, expect, it } from "vitest";
 
 import {
-  getPreview,
   getReasoningTimingKey,
   getToolTimingKey,
   projectActivityTimings,
   projectEveMessages,
   type StoredEveEvent,
 } from "@/lib/eve-events";
+import { getPreview } from "@/lib/preview";
 
 function previewMessage(input: unknown, output: unknown): EveMessage {
   return {
@@ -45,7 +45,7 @@ describe("getPreview", () => {
     ).toBeUndefined();
   });
 
-  it("keeps previews from existing chats", () => {
+  it("keeps previews from existing sessions", () => {
     expect(
       getPreview(
         [

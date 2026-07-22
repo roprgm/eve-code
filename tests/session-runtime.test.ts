@@ -88,6 +88,23 @@ it("shows the optimistic message, then stops locally and cancels Eve", async () 
   expect(sent.signal?.aborted).toBe(true);
   expect(cancelCalls).toEqual([{ turnId: "turn-1" }]);
   await stopping;
+  sendTurn(sessionId, { message: "Too soon" });
+  expect(getSessionRuntime(sessionId)?.connection.status).toBe("stopped");
+  clearSessionRuntime(sessionId);
+});
+
+it("keeps a failed cancellation recoverable", async () => {
+  const sessionId = createPublicId();
+  mock.session = {
+    cancel: vi.fn().mockRejectedValue(new Error("Cancel failed")),
+    send: vi.fn(),
+    state: { sessionId: "session-1", streamIndex: 0 },
+  };
+
+  await stopSession(sessionId, mock.session.state);
+
+  expect(getSessionRuntime(sessionId)?.connection.status).toBe("stopped");
+  expect(getSessionRuntime(sessionId)?.error).toBe("Could not stop this conversation.");
   clearSessionRuntime(sessionId);
 });
 

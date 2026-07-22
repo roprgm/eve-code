@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 type ButtonVariant = "default" | "destructive" | "outline" | "ghost";
-type ButtonSize = "default" | "sm" | "icon-sm";
+type ButtonSize = "default" | "sm" | "icon" | "icon-sm";
 
 const variants: Record<ButtonVariant, string> = {
   default: "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -15,6 +15,7 @@ const variants: Record<ButtonVariant, string> = {
 const sizes: Record<ButtonSize, string> = {
   default: "h-8 gap-2 px-2",
   sm: "h-6 gap-1.5 px-2 text-sm",
+  icon: "size-8 rounded-sm [&_svg]:size-4",
   "icon-sm": "size-6 rounded-sm",
 };
 
@@ -33,7 +34,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        "inline-flex shrink-0 items-center justify-center rounded-md font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         variants[variant],
         sizes[size],
         className,
