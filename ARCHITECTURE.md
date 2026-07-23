@@ -1,11 +1,16 @@
 # Architecture
 
-> Living document. Unless a section is marked **Planned**, it describes the
-> current implementation.
+This document is the repository map and architectural guardrail. It describes the
+current system, assigns each responsibility to one owner, and defines the dependency
+direction that keeps changes small and prevents technical debt.
 
-eve-code is a browser coding agent in the spirit of Claude Code or Codex. A user
-starts a session, asks an agent to build something, and watches it work inside a
-live sandbox.
+Read it before changing state ownership, persistence, external boundaries,
+dependencies, or code across layers. Update it in the same change when those
+boundaries move. This is not a roadmap: speculative work belongs in a focused design
+document and enters here only when it becomes part of the implementation.
+
+eve-code is a browser coding agent. A user starts a session, asks an agent to build
+something, and watches it work inside a live sandbox.
 
 Three goals rank above every feature:
 
@@ -18,7 +23,7 @@ Three goals rank above every feature:
 
 Few features executed well beat many features.
 
-## Current shape
+## System map
 
 ```text
 Browser (Vite + React)
@@ -37,13 +42,29 @@ Browser ── workspace and preview HTTP ──▶ Eve channels ──▶ same 
 The HTTP channels are narrow product adapters. Eve still creates the session and
 sandbox, runs the agent, serializes turns, and owns the durable event stream.
 
-## Current principles
+### Ownership
+
+- **Eve** owns agent sessions, turns, event streaming, tool execution, and the
+  session-bound sandbox.
+- **Convex** owns the durable product index and compact completed-turn checkpoints.
+- **The browser runtime** owns only in-flight events, optimistic input, view state,
+  and caches derived from Eve or Convex.
+- **Eve channels** expose narrow browser-to-sandbox operations that Eve does not
+  provide directly. They do not become a second application backend.
+- **Git metadata** describes the repository currently found in a session workspace.
+  It does not create a second project or persistence model.
+
+New behavior extends the existing owner. Do not introduce a parallel store, stream,
+session model, or sandbox API for the same responsibility.
+
+## Architectural principles
 
 1. **Eve first.** A design built on an Eve primitive wins over a parallel local
    framework.
 2. **The session is the unit of work.** It carries conversation state, the sandbox,
-   and turn serialization. There is no separate project model until Git-backed
-   repositories provide a real reason to group sessions.
+   and turn serialization. Repository and branch fields describe its current
+   workspace; sessions are not grouped or synchronized through a separate project
+   model.
 3. **The workspace starts empty.** `agent/sandbox.ts` selects Eve's Vercel backend.
    A repository start asks the agent to clone through `clone_repository`; otherwise
    no framework or seed is installed until the task needs one.
@@ -56,12 +77,10 @@ sandbox, runs the agent, serializes turns, and owns the durable event stream.
 6. **Work stays visible.** Reasoning, tool calls, elapsed time, diffs, and command
    output appear in the conversation. Preview opens the real server URL in a new
    tab; there is no iframe or duplicate log panel.
-7. **The demo has no application identity.** Convex operations and product channels
-   do not enforce user ownership. Deployments stay private until authentication,
-   ownership, and cost policy are designed.
-
-The reviewer subagent and human file editing are planned features, not current
-architecture. Approvals and a human terminal remain optional.
+7. **Security boundaries stay explicit.** The demo has no application identity:
+   Convex operations and product channels do not enforce user ownership. Keep any
+   deployment private unless authentication, ownership, and cost controls are added
+   as one coherent boundary.
 
 ## Data model
 
@@ -102,8 +121,8 @@ Eve's built-ins are the base. The local additions are deliberately narrow:
 - **Instructions** require reading before editing, finite Bash commands, `start_dev`
   for long-lived servers, and a build or test before claiming success.
 
-Planning modes, memory systems, and extra orchestration stay out until a phase proves
-their value.
+Add orchestration only when the existing session-and-tool model cannot express a
+proven requirement.
 
 ## Framework edges and workarounds
 
@@ -158,7 +177,7 @@ Here `sessionId` is Eve's durable session ID, not the app's public session ID.
 The tree refetches after the next Convex checkpoint changes the session stream index.
 It intentionally has no watcher yet. Routes are `/` and `/s/:sessionId`.
 
-A dedicated hook checks the workspace for Git after each completed turn. It derives
+A dedicated hook checks the workspace for Git at each session boundary. It derives
 the GitHub origin and current branch from the sandbox and syncs them to the product
 session, whether Git was created from the Home shortcut or by a later agent command.
 
@@ -181,23 +200,21 @@ session, whether Git was created from the Home shortcut or by a later agent comm
 - **Cached workspace data remains visible.** A refresh keeps the last tree or file
   until its replacement arrives.
 
-The Phase 4 bundle check is an initial-path budget, not a promise of zero growth.
-Its measured result is recorded in [PLAN.md](./PLAN.md).
-
 ## Structure and layers
 
 Dependencies point downward. If a lower layer needs a higher one, move the concern
-instead of bending the rule.
+instead of bending the rule. Cross-layer changes must preserve one owner for each
+piece of state and one boundary for each external system.
 
 ```text
 docs/           platform research and upstream notes
 agent/          Eve agent and its server-side adapters
   agent.ts  sandbox.ts  instructions.md
   channels/     Eve transport, preview control, read-only workspace and logs
-  hooks/        turn checkpoint persistence
+  hooks/        turn checkpoint persistence and Git metadata sync
   lib/          Agent-specific helpers
   skills/       optional stack recipes
-  tools/        bash.ts  write_file.ts  edit_file.ts  start_dev.ts
+  tools/        narrow additions to Eve's built-in tool set
 convex/         schema, session operations, and checkpoint persistence
 lib/            lowest-level non-component modules and runtime/vendor adapters
 components/
@@ -217,6 +234,8 @@ Layer rules:
 - `lib/` never imports feature components, `app/`, `agent/`, or `convex/`. A module
   may be cross-runtime or browser-only, but its dependencies must make that boundary
   obvious.
+- External data is validated and normalized at its boundary. Internal consumers
+  receive one stable shape instead of repeating defensive parsing.
 - Feature components may import `ui/`, `lib/`, generated Convex APIs, and sibling or
   lower feature facades. `app/` wires them together; nothing imports from `app/`.
 - Vendor renderers stay behind `components/code/` or the workspace feature boundary.
@@ -225,7 +244,7 @@ Layer rules:
 - Split on responsibility, not line count. Extract shared code on its second real
   consumer, not in anticipation of one.
 
-## Current dependencies
+## Dependency boundaries
 
 The runtime remains intentionally short:
 
@@ -237,11 +256,10 @@ The runtime remains intentionally short:
   source, diff, and tree rendering
 - Zod for HTTP boundary validation
 
-xterm and CodeMirror are not installed. Human editing must earn CodeMirror, and a
-terminal remains optional because agent Bash already covers the core execution
-story. The repository also avoids a parallel HTTP framework, direct LLM SDKs, and
-iframe preview infrastructure because Eve and the platform already provide the
-needed boundaries.
+The current product has no browser editor or terminal; agent tools and the read-only
+workspace cover that scope without those runtime dependencies. The repository also
+avoids a parallel HTTP framework, direct LLM SDKs, and iframe preview infrastructure
+because Eve and the platform already provide the needed boundaries.
 
 ## Workspace export
 
@@ -254,24 +272,7 @@ Browser ── Eve workspace route ──▶ Vercel Sandbox ──▶ TAR of /wo
 
 The route creates a temporary archive inside the sandbox, excludes `node_modules`,
 and returns the bytes through Eve. It needs no extra port, token, dependency,
-or process to restore after resume. A human terminal moves to Later and must justify
-its own PTY server and security boundary if it returns.
-
-## Planned: later phases
-
-- **Phase 6:** Git-backed repositories that can group sessions and synchronize them
-  through commits.
-- **Phase 7:** a reviewer subagent that checks out the commit under review in its own
-  sandbox.
-- **Phase 8:** human editing with lazy CodeMirror.
-- **Later:** approvals for external side effects, an optional human terminal,
-  identity and cost policy, more stack skills, and evals.
-
-Cross-session work has been verified as feasible with one sandbox per session and
-local Git synchronization; Phase 6 builds on the research in
-[docs/sandbox.md](./docs/sandbox.md). No current code models a repository or groups
-sessions. The reviewer follows Git because Eve subagents have independent sandboxes
-and cannot inspect the root session's uncommitted filesystem directly.
+or process to restore after resume.
 
 ## Upstream and investigation notes
 
@@ -279,18 +280,6 @@ When Eve lacks a needed primitive, keep the local adapter small, document why it
 exists, and remove it when Eve gains the capability. Upstream contact goes through
 the owner.
 
-Implementation assumptions were checked against Eve 0.24.6 source and the Phase 0
-Vercel Sandbox spike. See [docs/eve.md](./docs/eve.md),
-[docs/sandbox.md](./docs/sandbox.md), and
+Implementation assumptions were checked against Eve 0.24.6 source and real Vercel
+Sandboxes. See [docs/sandbox.md](./docs/sandbox.md) and
 [docs/eve-improvements.md](./docs/eve-improvements.md).
-
-## Open questions
-
-- Whether eve-code is ultimately a private hosted product, a self-hosted demo using
-  the operator's keys, or both. Authentication, ownership, quotas, and public access
-  wait on that answer.
-- For Git-backed repositories: where the canonical checkout lives and how merge
-  conflicts are surfaced when sessions are grouped.
-
-File-tree freshness is resolved for the current phase: refetch after each committed
-turn. A filesystem watcher is considered only if measurement proves that insufficient.
