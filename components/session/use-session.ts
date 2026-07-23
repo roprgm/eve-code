@@ -96,8 +96,8 @@ export function isSessionCheckpointed(
   if (!session || !runtime) return false;
   if (session.status === "running" || session.status === "stopping") return false;
   if (session.streamIndex < runtime.connection.index) return false;
-  if (!runtime.optimistic) return true;
-  return session.streamIndex > runtime.optimistic.startIndex;
+  if (runtime.connection.submittedAtIndex === undefined) return true;
+  return session.streamIndex > runtime.connection.submittedAtIndex;
 }
 
 export function isSessionGenerating(

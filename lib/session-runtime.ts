@@ -17,6 +17,7 @@ type Connection = {
   readonly session: ClientSession;
   sessionId?: string;
   status: "disconnected" | "failed" | "running" | "settled" | "stopped";
+  readonly submittedAtIndex?: number;
   turnId?: string;
 };
 
@@ -39,13 +40,18 @@ type SendTurnOptions = {
 const client = new Client({ host: "" });
 const useRuntimes = create<RuntimeStore>()(() => ({ sessions: {} }));
 
-function createConnection(state: SessionState | undefined, streamIndex: number): Connection {
+function createConnection(
+  state: SessionState | undefined,
+  streamIndex: number,
+  submittedAtIndex?: number,
+): Connection {
   return {
     controller: new AbortController(),
     index: streamIndex,
     session: client.session({ ...state, streamIndex }),
     sessionId: state?.sessionId,
     status: "running",
+    submittedAtIndex,
   };
 }
 
@@ -205,7 +211,7 @@ export function sendTurn(
   if (current && current.connection.status !== "failed") return;
   const state = sessionState ?? current?.connection.session.state;
   const startIndex = Math.max(state?.streamIndex ?? 0, current?.connection.index ?? 0);
-  const connection = createConnection(state, startIndex);
+  const connection = createConnection(state, startIndex, startIndex);
   setRuntime(sessionId, {
     connection,
     events: current?.events ?? [],

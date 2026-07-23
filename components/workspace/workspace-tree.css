@@ -6,7 +6,7 @@
 [data-truncate-group-container] > div,
 [data-truncate-container],
 [data-truncate-grid],
-[data-truncate-grid] > div,
+[data-truncate-grid] > div:not([data-truncate-marker-cell]):not([data-truncate-fill]),
 [data-truncate-content="visible"] {
   display: inline;
 }
