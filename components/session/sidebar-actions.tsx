@@ -25,7 +25,7 @@ export function SessionSidebarActions({
   const isActive = status === "running" || status === "stopping";
 
   return (
-    <div className="absolute top-1.5 right-1.5 grid size-6 place-items-center">
+    <div className="absolute top-1 right-1.5 grid size-6 place-items-center">
       {isActive && (
         <LoaderCircle
           aria-label={`${name} is working`}

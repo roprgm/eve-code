@@ -1,6 +1,6 @@
 import { useConvexMutation } from "@convex-dev/react-query";
 import { useMutation } from "@tanstack/react-query";
-import { Folder, GitFork } from "lucide-react";
+import { GitFork } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { href, Link } from "react-router";
 import { SessionSidebarActions } from "@/components/session/sidebar-actions";
@@ -17,25 +17,24 @@ export type SessionSummary = {
   readonly updatedAt: number;
 };
 
-function SessionCardDetails({
-  repository,
-  status,
-}: {
-  readonly repository?: string;
-  readonly status: SessionStatus;
-}) {
+function RepositoryRow({ repository }: { readonly repository?: string }) {
+  if (!repository) return <span className="h-4" />;
+  return (
+    <span className="flex items-center gap-1.5 pr-7 text-sm text-muted-foreground">
+      <GitFork aria-hidden="true" className="size-3 shrink-0" />
+      <span className="truncate">{repository}</span>
+    </span>
+  );
+}
+
+function StatusRow({ status }: { readonly status: SessionStatus }) {
   const isActive = status === "running" || status === "stopping";
   const activity = isActive ? "In progress" : "Ready";
-  const WorkspaceIcon = repository ? GitFork : Folder;
-
   return (
-    <>
-      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-        <WorkspaceIcon aria-hidden="true" className="size-3 shrink-0" />
-        <span className="truncate">{repository ?? "Local workspace"}</span>
-      </span>
-      <span className="truncate text-sm text-muted-foreground/75">{activity}</span>
-    </>
+    <span className="truncate font-mono text-xs text-muted-foreground/75">
+      <span aria-hidden="true">{"> "}</span>
+      {activity}
+    </span>
   );
 }
 
@@ -89,14 +88,15 @@ export function SessionSidebarItem({
   return (
     <div
       className={cn(
-        "group relative mb-1.5 h-18 rounded-md border bg-card transition-colors hover:bg-sidebar-hover focus-within:bg-sidebar-hover",
+        "group relative mb-1.5 h-18 rounded-md border border-border/40 bg-muted transition-colors hover:bg-accent focus-within:bg-accent",
         isSelected &&
-          "bg-sidebar-selected hover:bg-sidebar-selected focus-within:bg-sidebar-selected",
+          "border-border bg-sidebar-selected hover:bg-sidebar-selected focus-within:bg-sidebar-selected",
       )}
     >
       {isEditing && (
         <div className="flex h-full min-w-0 flex-col justify-center gap-0.5 px-2.5">
-          <form className="pr-7" onSubmit={submit}>
+          <RepositoryRow repository={session.repository} />
+          <form onSubmit={submit}>
             <input
               aria-invalid={renameSession.isError}
               aria-label={`Rename ${session.name}`}
@@ -109,7 +109,7 @@ export function SessionSidebarItem({
               ref={inputRef}
             />
           </form>
-          <SessionCardDetails repository={session.repository} status={session.status} />
+          <StatusRow status={session.status} />
         </div>
       )}
       {!isEditing && (
@@ -119,8 +119,9 @@ export function SessionSidebarItem({
           onClick={onNavigate}
           to={href("/s/:sessionId", { sessionId: session.sessionId })}
         >
-          <span className="truncate pr-7 font-medium leading-5">{session.name}</span>
-          <SessionCardDetails repository={session.repository} status={session.status} />
+          <RepositoryRow repository={session.repository} />
+          <span className="truncate font-medium leading-5">{session.name}</span>
+          <StatusRow status={session.status} />
         </Link>
       )}
       {!isEditing && (
