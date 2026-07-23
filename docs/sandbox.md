@@ -15,6 +15,8 @@ sandbox.domain(3000); // "https://sb-<subdomain>.vercel.run"
 - Ports can also be added later with `sandbox.update({ ports })`. `start_dev` uses
   this to expose the port selected by the model before it launches the server.
 - URLs are stable across stop and resume.
+- `start_dev` probes the public URL before returning success. An unreachable server
+  is stopped so its port does not block a corrected retry.
 
 ## Resolving the URL from Eve
 
@@ -35,7 +37,7 @@ Only boundaries that need SDK-only operations touch `@vercel/sandbox` directly:
 ## Traffic
 
 - HTTP through the public URL works; a Vite dev server serves normally with
-  `server: { host: true, allowedHosts: true, hmr: { protocol: "wss", clientPort: 443 } }`.
+  `server: { host: "0.0.0.0", allowedHosts: true, hmr: { protocol: "wss", clientPort: 443 } }`.
 - WebSocket upgrades work through the public URL, including Vite HMR over `wss://`.
 
 ## Stop / resume

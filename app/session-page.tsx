@@ -35,7 +35,7 @@ function Session({ sessionId }: { readonly sessionId: string }) {
   );
 }
 
-export function SessionPage() {
+export function Component() {
   const { sessionId } = useParams();
   if (!isPublicId(sessionId)) return <NotFoundPage />;
 

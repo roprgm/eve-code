@@ -2,6 +2,7 @@ import { type UseFileTreeResult, useFileTree, useFileTreeSelection } from "@pier
 import { useEffect, useRef } from "react";
 
 import type { WorkspaceFileRequest } from "@/components/workspace/workspace-navigation";
+import workspaceTreeCSS from "@/components/workspace/workspace-tree.css?raw";
 
 const emptyPaths: string[] = [];
 type TreeModel = UseFileTreeResult["model"];
@@ -45,6 +46,7 @@ export function useWorkspaceTree(
     density: "compact",
     flattenEmptyDirectories: true,
     paths: emptyPaths,
+    unsafeCSS: workspaceTreeCSS,
   });
   const hasRequestedFile = paths.includes(requestedFile.path);
   useEffect(() => {
