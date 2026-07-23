@@ -1,0 +1,18 @@
+[data-item-section="content"] {
+  white-space: nowrap;
+}
+
+[data-truncate-group-container],
+[data-truncate-group-container] > div,
+[data-truncate-container],
+[data-truncate-grid],
+[data-truncate-grid] > div,
+[data-truncate-content="visible"] {
+  display: inline;
+}
+
+[data-truncate-content="overflow"],
+[data-truncate-fill],
+[data-truncate-marker-cell] {
+  display: none;
+}
