@@ -4,7 +4,10 @@ import { App } from "./app";
 import { AppErrorBoundary } from "./error-boundary";
 import { HomePage } from "./home-page";
 import { NotFoundPage } from "./not-found";
-import { SessionPage } from "./session-page";
+
+function SessionRouteLoading() {
+  return null;
+}
 
 export const router = createBrowserRouter([
   {
@@ -12,7 +15,11 @@ export const router = createBrowserRouter([
     ErrorBoundary: AppErrorBoundary,
     children: [
       { index: true, Component: HomePage },
-      { path: "/s/:sessionId", Component: SessionPage },
+      {
+        HydrateFallback: SessionRouteLoading,
+        lazy: () => import("./session-page"),
+        path: "/s/:sessionId",
+      },
       { path: "*", Component: NotFoundPage },
     ],
     path: "/",

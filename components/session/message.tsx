@@ -1,15 +1,13 @@
 import type { EveMessage, EveMessagePart } from "eve/client";
 import { Brain } from "lucide-react";
-import { lazy, Suspense } from "react";
 
+import MarkdownMessage from "@/components/session/markdown-message";
 import { ModelActivity } from "@/components/session/model-activity";
 import { ToolActivity } from "@/components/session/tool-activity";
 import { useElapsed } from "@/components/session/use-elapsed";
 import { CopyButton } from "@/components/ui/copy-button";
 import { MessageScrollerItem } from "@/components/ui/message-scroller";
 import { type ActivityTiming, getReasoningTimingKey, getToolTimingKey } from "@/lib/eve-events";
-
-const MarkdownMessage = lazy(() => import("@/components/session/markdown-message"));
 
 type Timings = ReadonlyMap<string, ActivityTiming>;
 
@@ -64,9 +62,7 @@ function ThinkingActivity({ isActive, part, timing }: ThinkingActivityProps) {
 
   return (
     <ModelActivity elapsed={elapsed} icon={Brain} isAnimated={isThinking} label={label}>
-      <Suspense fallback={part.text}>
-        <MarkdownMessage isAnimating={isThinking} text={part.text} />
-      </Suspense>
+      <MarkdownMessage isAnimating={isThinking} text={part.text} />
     </ModelActivity>
   );
 }
@@ -81,9 +77,7 @@ type AssistantPartProps = {
 function AssistantPart({ isActive, message, part, timings }: AssistantPartProps) {
   if (part.type === "text") {
     return (
-      <Suspense fallback={part.text}>
-        <MarkdownMessage isAnimating={isActive && part.state === "streaming"} text={part.text} />
-      </Suspense>
+      <MarkdownMessage isAnimating={isActive && part.state === "streaming"} text={part.text} />
     );
   }
   if (part.type === "reasoning") {
