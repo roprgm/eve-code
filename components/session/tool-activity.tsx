@@ -35,6 +35,7 @@ const TOOL_DEFINITIONS: Readonly<Record<string, ToolDefinition>> = {
   edit_file: { active: "Editing", done: "Edited", icon: FilePen, input: "filePath" },
   glob: { active: "Listing files", done: "Listed files", icon: Files, input: "pattern" },
   grep: { active: "Searching", done: "Searched", icon: TextSearch, input: "pattern" },
+  load_skill: { active: "Loading skill", done: "Loaded skill", icon: Wrench, input: "skill" },
   read_file: { active: "Reading", done: "Read", icon: FileText, input: "filePath" },
   start_dev: { active: "Starting", done: "Preview is live", icon: Globe, input: "command" },
   todo: { active: "Updating todos", done: "Updated todos", icon: ListTodo },
