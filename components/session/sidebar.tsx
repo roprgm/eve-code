@@ -1,6 +1,6 @@
 import { useConvexPaginatedQuery } from "@convex-dev/react-query";
 import { AlignLeft, PanelLeft, SquarePen, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { href, useNavigate } from "react-router";
 
 import { DeleteSessionDialog } from "@/components/session/delete-dialog";
@@ -8,6 +8,17 @@ import { SessionSidebarItem, type SessionSummary } from "@/components/session/si
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
+
+function useNow(): number {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return now;
+}
 
 type SessionSidebarProps = {
   readonly isCollapsed: boolean;
@@ -32,6 +43,7 @@ export function SessionSidebar({
     status,
   } = useConvexPaginatedQuery(api.sessions.list, {}, { initialNumItems: 50 });
   const navigate = useNavigate();
+  const now = useNow();
   const [deleteTarget, setDeleteTarget] = useState<SessionSummary>();
 
   function openDelete(session: SessionSummary): void {
@@ -109,6 +121,7 @@ export function SessionSidebar({
             <SessionSidebarItem
               isSelected={selectedSessionId === session.sessionId}
               key={session.sessionId}
+              now={now}
               onDelete={openDelete}
               onNavigate={onClose}
               session={session}

@@ -35,7 +35,13 @@ export const list = query({
       .withIndex("by_updated_at")
       .order("desc")
       .paginate(paginationOpts);
-    const page = result.page.map(({ name, sessionId, status }) => ({ name, sessionId, status }));
+    const page = result.page.map(({ name, repository, sessionId, status, updatedAt }) => ({
+      name,
+      repository,
+      sessionId,
+      status,
+      updatedAt,
+    }));
     return { ...result, page };
   },
 });

@@ -1,25 +1,53 @@
 import { useConvexMutation } from "@convex-dev/react-query";
 import { useMutation } from "@tanstack/react-query";
+import { Folder, GitFork } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { href, Link } from "react-router";
 import { SessionSidebarActions } from "@/components/session/sidebar-actions";
 import type { SessionStatus } from "@/components/session/use-session";
 import { api } from "@/convex/_generated/api";
+import { formatRelativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
 export type SessionSummary = {
   readonly name: string;
+  readonly repository?: string;
   readonly sessionId: string;
   readonly status: SessionStatus;
+  readonly updatedAt: number;
 };
+
+function SessionCardDetails({
+  repository,
+  status,
+}: {
+  readonly repository?: string;
+  readonly status: SessionStatus;
+}) {
+  const isActive = status === "running" || status === "stopping";
+  const activity = isActive ? "In progress" : "Ready";
+  const WorkspaceIcon = repository ? GitFork : Folder;
+
+  return (
+    <>
+      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <WorkspaceIcon aria-hidden="true" className="size-3 shrink-0" />
+        <span className="truncate">{repository ?? "Local workspace"}</span>
+      </span>
+      <span className="truncate text-sm text-muted-foreground/75">{activity}</span>
+    </>
+  );
+}
 
 export function SessionSidebarItem({
   isSelected,
+  now,
   onDelete,
   onNavigate,
   session,
 }: {
   readonly isSelected: boolean;
+  readonly now: number;
   readonly onDelete: (session: SessionSummary) => void;
   readonly onNavigate: () => void;
   readonly session: SessionSummary;
@@ -61,34 +89,38 @@ export function SessionSidebarItem({
   return (
     <div
       className={cn(
-        "group mb-0.5 flex h-9 min-w-0 items-center rounded-md transition-colors hover:bg-sidebar-hover focus-within:bg-sidebar-hover md:h-7",
+        "group relative mb-1.5 h-18 rounded-md border bg-card transition-colors hover:bg-sidebar-hover focus-within:bg-sidebar-hover",
         isSelected &&
           "bg-sidebar-selected hover:bg-sidebar-selected focus-within:bg-sidebar-selected",
       )}
     >
       {isEditing && (
-        <form className="min-w-0 flex-1 px-2" onSubmit={submit}>
-          <input
-            aria-invalid={renameSession.isError}
-            aria-label={`Rename ${session.name}`}
-            className="w-full bg-transparent outline-none aria-invalid:text-destructive"
-            defaultValue={session.name}
-            disabled={renameSession.isPending}
-            maxLength={100}
-            onBlur={saveName}
-            onKeyDown={cancel}
-            ref={inputRef}
-          />
-        </form>
+        <div className="flex h-full min-w-0 flex-col justify-center gap-0.5 px-2.5">
+          <form className="pr-7" onSubmit={submit}>
+            <input
+              aria-invalid={renameSession.isError}
+              aria-label={`Rename ${session.name}`}
+              className="w-full bg-transparent font-medium leading-5 outline-none aria-invalid:text-destructive"
+              defaultValue={session.name}
+              disabled={renameSession.isPending}
+              maxLength={100}
+              onBlur={saveName}
+              onKeyDown={cancel}
+              ref={inputRef}
+            />
+          </form>
+          <SessionCardDetails repository={session.repository} status={session.status} />
+        </div>
       )}
       {!isEditing && (
         <Link
           aria-current={isSelected}
-          className="flex h-full min-w-0 flex-1 items-center px-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
+          className="flex h-full min-w-0 flex-col justify-center gap-0.5 rounded-[inherit] px-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
           onClick={onNavigate}
           to={href("/s/:sessionId", { sessionId: session.sessionId })}
         >
-          <span className="block truncate">{session.name}</span>
+          <span className="truncate pr-7 font-medium leading-5">{session.name}</span>
+          <SessionCardDetails repository={session.repository} status={session.status} />
         </Link>
       )}
       {!isEditing && (
@@ -101,6 +133,7 @@ export function SessionSidebarItem({
           }}
           sessionId={session.sessionId}
           status={session.status}
+          time={formatRelativeTime(session.updatedAt, now)}
         />
       )}
     </div>

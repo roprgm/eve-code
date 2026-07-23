@@ -10,6 +10,7 @@ type SessionSidebarActionsProps = {
   readonly onRename: () => void;
   readonly sessionId: string;
   readonly status: SessionStatus;
+  readonly time: string;
 };
 
 export function SessionSidebarActions({
@@ -18,18 +19,24 @@ export function SessionSidebarActions({
   onRename,
   sessionId,
   status,
+  time,
 }: SessionSidebarActionsProps) {
   const id = `session-actions-${sessionId}`;
   const isActive = status === "running" || status === "stopping";
 
   return (
-    <div className="relative mr-0.5 grid size-6 shrink-0 place-items-center">
+    <div className="absolute top-1.5 right-1.5 grid size-6 place-items-center">
       {isActive && (
         <LoaderCircle
           aria-label={`${name} is working`}
           className="hidden size-4 animate-spin text-muted-foreground md:block md:group-hover:opacity-0 md:group-focus-within:opacity-0"
           role="status"
         />
+      )}
+      {!isActive && (
+        <span className="absolute inset-y-0 right-0.5 hidden items-center text-sm text-muted-foreground md:flex md:group-hover:opacity-0 md:group-focus-within:opacity-0">
+          {time}
+        </span>
       )}
       <Button
         aria-label={`More options for ${name}`}
