@@ -39,7 +39,8 @@
   --text-sm: 0.75rem;
   --text-sm--line-height: 1rem;
   --text-base: 0.875rem;
-  --text-base--line-height: 1.75rem;
+  --text-base--line-height: 1.5rem;
+  --leading-chat: 1.4375rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -156,6 +157,10 @@
 .model-response :where(h1, h2, h3, h4, h5, h6) {
   font-size: inherit;
   line-height: inherit;
+}
+
+.model-activity:has(+ .model-activity) {
+  margin-bottom: 0;
 }
 
 .reasoning-details {

@@ -113,7 +113,7 @@ export function Message({ createdAt, isActive, message, timings }: MessageProps)
     return (
       <MessageScrollerItem messageId={message.id}>
         <article aria-label="You" className="group/message flex flex-col items-end py-3">
-          <p className="max-w-[85%] wrap-anywhere whitespace-pre-wrap rounded-xl bg-muted px-4 py-2 sm:max-w-[75%]">
+          <p className="max-w-[85%] wrap-anywhere whitespace-pre-wrap rounded-xl bg-muted px-4 py-2 leading-chat sm:max-w-[75%]">
             {text}
           </p>
           <MessageActions createdAt={createdAt} text={text} />
