@@ -5,7 +5,7 @@ import { joinNonEmptyLines } from "@/lib/text";
 
 type Entry = { readonly event: HandleMessageStreamEvent; readonly index: number };
 
-export type TurnUsage = { readonly inputTokens: number; readonly outputTokens: number };
+type TurnUsage = { readonly inputTokens: number; readonly outputTokens: number };
 
 function checkpointStatus(
   events: readonly HandleMessageStreamEvent[],

@@ -5,9 +5,11 @@ const storedEvent = v.object({ event: v.any(), index: v.number() });
 
 export default defineSchema({
   sessions: defineTable({
+    branch: v.optional(v.string()),
     continuationToken: v.optional(v.string()),
     eveSessionId: v.optional(v.string()),
     name: v.string(),
+    repository: v.optional(v.string()),
     sessionId: v.string(),
     status: v.union(
       v.literal("ready"),

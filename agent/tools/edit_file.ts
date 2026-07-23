@@ -1,7 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 
-import { applyFileEdits, queueFileMutation } from "@/agent/file-edit";
+import { applyFileEdits, queueFileMutation } from "@/agent/lib/files";
 import { computeFileDiff, fileDiffSchema } from "@/lib/file-diff";
 
 const editSchema = z.object({

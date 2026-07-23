@@ -2,13 +2,13 @@ import { Sandbox } from "@vercel/sandbox";
 import { defineChannel, GET } from "eve/channels";
 import { z } from "zod";
 
-import { getActiveCommandLogStream } from "@/agent/bash-command";
+import { getActiveCommandLogStream } from "@/agent/lib/bash";
 import {
   createWorkspaceArchive,
   getWorkspacePath,
   listWorkspaceFiles,
   readWorkspaceFile,
-} from "@/agent/workspace-files";
+} from "@/agent/lib/workspace";
 import { workspacePathSchema } from "@/lib/workspace";
 
 const route = "/eve/v1/workspace/:sessionId";
@@ -62,9 +62,9 @@ export default defineChannel({
       return new Response(Uint8Array.from(archive), {
         headers: {
           "cache-control": "no-store",
-          "content-disposition": 'attachment; filename="workspace.zip"',
+          "content-disposition": 'attachment; filename="workspace.tar.gz"',
           "content-length": String(archive.byteLength),
-          "content-type": "application/zip",
+          "content-type": "application/gzip",
         },
       });
     }),

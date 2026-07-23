@@ -153,9 +153,12 @@ async function runTurn(
   }
 
   try {
+    const headers = connection.session.state.sessionId
+      ? input.headers
+      : { ...input.headers, [SESSION_ID_HEADER]: sessionId };
     const stream = await connection.session.send({
       ...input,
-      headers: { ...input.headers, [SESSION_ID_HEADER]: sessionId },
+      headers,
       signal: connection.controller.signal,
     });
     if (connection.status === "stopped") {

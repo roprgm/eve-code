@@ -89,7 +89,7 @@ Throwaway code; the deliverable is answers written into the docs.
   the active tool activity. The desktop session sidebar can collapse to keep the
   header usable.
 - **Out of scope:** general process supervision, restoring other processes, sandbox
-  cleanup, approvals, file tree, terminal, zip.
+  cleanup, approvals, file tree, terminal, or workspace archive.
 - **Done when:** new and existing sessions keep Preview available; it opens in a new tab,
   follows a replacement sandbox, can stop or restart after idle, and stopping a turn
   kills its active Bash command.
@@ -107,7 +107,8 @@ Throwaway code; the deliverable is answers written into the docs.
   file; a right-side workspace panel renders a file tree and syntax-highlighted
   read-only viewer with the full path at the top. The panel is lazy-loaded and the
   tree refreshes after each committed turn.
-- **Out of scope:** editing, rename, drag and drop, Git status, terminal, zip,
+- **Out of scope:** editing, rename, drag and drop, Git status, terminal, workspace
+  archive,
   resizable panels.
 - **Done when:** a file the agent just wrote appears after the turn, selecting it
   opens the highlighted contents with its full path, keyboard tree navigation works,
@@ -123,13 +124,13 @@ Throwaway code; the deliverable is answers written into the docs.
 
 ## Workspace portability
 
-### Phase 5 — ZIP download
+### Phase 5 — Workspace download
 
 - **Goal:** take your code home.
 - **Scope:** an Eve workspace route creates a temporary archive inside the sandbox,
   returns it to the browser, and powers a Download action on the session page.
 - **Out of scope:** a persistent sandbox server, terminal, and stored archives.
-- **Done when:** the downloaded zip unpacks into the current workspace contents with
+- **Done when:** the downloaded archive unpacks into the current workspace contents with
   every `node_modules` directory excluded, without breaking Preview.
 - **Reads:** Planned: workspace export, Current principles 1 and 6, docs/sandbox.md.
 - **Status: in progress.** Implementation and automated verification are complete;

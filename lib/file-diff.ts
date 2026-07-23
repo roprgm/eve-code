@@ -40,7 +40,3 @@ export function getFileDiffStats(patch: string): { additions: number; deletions:
   }
   return { additions, deletions };
 }
-
-export function parseFileDiff(value: unknown): FileDiff | undefined {
-  return fileDiffSchema.safeParse(value).data;
-}

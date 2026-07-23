@@ -55,6 +55,7 @@ it("shows the optimistic message, then stops locally and cancels Eve", async () 
   const sessionId = createPublicId();
   const cancelCalls: Array<{ readonly turnId?: string } | undefined> = [];
   const sent: { input?: SendTurnPayload; signal?: AbortSignal } = {};
+  const state: { sessionId?: string; streamIndex: number } = { streamIndex: 0 };
   async function* stream() {
     yield {
       data: { sequence: 0, turnId: "turn-1" },
@@ -74,9 +75,10 @@ it("shows the optimistic message, then stops locally and cancels Eve", async () 
     async send(input) {
       sent.input = input;
       sent.signal = input.signal;
+      state.sessionId = "session-1";
       return stream();
     },
-    state: { sessionId: "session-1", streamIndex: 0 },
+    state,
   };
 
   sendTurn(sessionId, { message: "Keep working" });
@@ -90,6 +92,25 @@ it("shows the optimistic message, then stops locally and cancels Eve", async () 
   await stopping;
   sendTurn(sessionId, { message: "Too soon" });
   expect(getSessionRuntime(sessionId)?.connection.status).toBe("stopped");
+  clearSessionRuntime(sessionId);
+});
+
+it("omits the app session header when Eve already has a session", async () => {
+  const sessionId = createPublicId();
+  const send = vi.fn(async (_input: SendTurnPayload) =>
+    (async function* () {
+      yield { type: "session.completed" } as HandleMessageStreamEvent;
+    })(),
+  );
+  mock.session = {
+    cancel: vi.fn(),
+    send,
+    state: { sessionId: "session-1", streamIndex: 1 },
+  };
+
+  sendTurn(sessionId, { message: "Continue" });
+  await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+  expect(send.mock.calls[0]?.[0].headers?.[SESSION_ID_HEADER]).toBeUndefined();
   clearSessionRuntime(sessionId);
 });
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { streamCommandLogs, watchCommand } from "@/agent/bash-command";
+import { streamCommandLogs, watchCommand } from "@/agent/lib/bash";
 
 function finished(exitCode: number, stdout: string, stderr: string) {
   return { exitCode, stderr: async () => stderr, stdout: async () => stdout };

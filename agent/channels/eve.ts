@@ -18,7 +18,7 @@ export default eveChannel({
       });
     }
 
-    const attributes: Record<string, string | readonly string[]> = {
+    const attributes = {
       ...auth.attributes,
       [SESSION_ID_ATTRIBUTE]: sessionId,
     };

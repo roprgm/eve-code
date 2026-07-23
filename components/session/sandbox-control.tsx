@@ -157,7 +157,7 @@ function PreviewControl({
             popoverTarget={menuId}
           >
             <Download aria-hidden="true" className="size-3.5" />
-            Download Zip
+            Download
           </MenuItem>
           {stopAction}
         </div>

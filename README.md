@@ -12,12 +12,13 @@ hot reload.
 
 - Streaming, durable conversations backed by Convex checkpoints
 - An empty persistent sandbox that can build any stack
+- Public GitHub repository import as a session starting point
 - Visible reasoning, tool activity, diffs, and live command output
 - Live preview with open, stop, resume, and restart controls
 - A keyboard-accessible file tree and syntax-highlighted read-only viewer
 - Optimistic session creation, plus session rename and deletion
 
-The next phases add ZIP export, Git-backed repositories, and a reviewer subagent.
+The next phases add Git-backed repositories and a reviewer subagent.
 See [PLAN.md](./PLAN.md) for the full roadmap.
 
 > eve-code is a demo, not a hosted multi-user product. It has no app-level

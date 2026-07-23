@@ -15,7 +15,7 @@ type SandboxCommand = {
   wait(params?: { signal?: AbortSignal }): PromiseLike<FinishedCommand>;
 };
 
-export type CommandResult = {
+type CommandResult = {
   readonly exitCode: number;
   readonly stderr: string;
   readonly stdout: string;

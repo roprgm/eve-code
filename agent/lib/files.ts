@@ -1,6 +1,6 @@
 const fileMutations = new Map<string, Promise<void>>();
 
-export type FileEdit = {
+type FileEdit = {
   readonly newText: string;
   readonly oldText: string;
 };

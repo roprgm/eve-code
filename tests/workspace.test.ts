@@ -5,7 +5,7 @@ import {
   decodeWorkspaceFile,
   getWorkspacePath,
   readWorkspaceFile,
-} from "@/agent/workspace-files";
+} from "@/agent/lib/workspace";
 
 describe("workspace files", () => {
   it("keeps requested paths inside the workspace", () => {
@@ -37,16 +37,24 @@ describe("workspace files", () => {
 
   it("creates and removes a temporary workspace archive", async () => {
     const archive = Buffer.from("archive");
-    const readFile = vi.fn().mockResolvedValue(archive);
+    const readFileToBuffer = vi.fn().mockResolvedValue(archive);
     const runCommand = vi.fn().mockResolvedValue({ exitCode: 0 });
     const unlink = vi.fn().mockResolvedValue(undefined);
-    const sandbox = { fs: { readFile, unlink }, runCommand } as unknown as Sandbox;
+    const sandbox = { fs: { unlink }, readFileToBuffer, runCommand } as unknown as Sandbox;
 
     await expect(createWorkspaceArchive(sandbox)).resolves.toBe(archive);
     const command = runCommand.mock.calls[0]?.[0];
-    const archivePath = command.args.at(-1);
-    expect(command).toMatchObject({ cmd: "python3", cwd: "/workspace" });
-    expect(readFile).toHaveBeenCalledWith(archivePath);
+    const archivePath = command.args[1];
+    expect(command).toMatchObject({ cmd: "tar" });
+    expect(command.args).toEqual([
+      "-czf",
+      archivePath,
+      "--exclude=node_modules",
+      "-C",
+      "/workspace",
+      ".",
+    ]);
+    expect(readFileToBuffer).toHaveBeenCalledWith({ path: archivePath });
     expect(unlink).toHaveBeenCalledWith(archivePath);
   });
 });

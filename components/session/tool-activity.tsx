@@ -3,6 +3,7 @@ import {
   FilePen,
   Files,
   FileText,
+  GitFork,
   Globe,
   ListTodo,
   type LucideIcon,
@@ -19,19 +20,35 @@ import { useElapsed } from "@/components/session/use-elapsed";
 import { CodeBlock } from "@/components/ui/code-block";
 import { useOpenWorkspaceFile } from "@/components/workspace/workspace-navigation";
 import type { ActivityTiming } from "@/lib/eve-events";
-import { type FileDiff, getFileDiffStats, parseFileDiff } from "@/lib/file-diff";
+import { type FileDiff, fileDiffSchema, getFileDiffStats } from "@/lib/file-diff";
 import { getStringProperty } from "@/lib/object";
 import { joinNonEmptyLines } from "@/lib/text";
 
 type ToolDefinition = {
   readonly active: string;
   readonly done: string;
+  readonly hasCommandLogs?: boolean;
+  readonly hasCommandOutput?: boolean;
   readonly input?: string;
   readonly icon: LucideIcon;
 };
 
 const TOOL_DEFINITIONS: Readonly<Record<string, ToolDefinition>> = {
-  bash: { active: "Running", done: "Ran", icon: Terminal, input: "command" },
+  bash: {
+    active: "Running",
+    done: "Ran",
+    hasCommandLogs: true,
+    hasCommandOutput: true,
+    icon: Terminal,
+    input: "command",
+  },
+  clone_repository: {
+    active: "Cloning",
+    done: "Cloned",
+    hasCommandOutput: true,
+    icon: GitFork,
+    input: "repository",
+  },
   edit_file: { active: "Editing", done: "Edited", icon: FilePen, input: "filePath" },
   glob: { active: "Listing files", done: "Listed files", icon: Files, input: "pattern" },
   grep: { active: "Searching", done: "Searched", icon: TextSearch, input: "pattern" },
@@ -44,7 +61,13 @@ const TOOL_DEFINITIONS: Readonly<Record<string, ToolDefinition>> = {
 };
 
 function getToolDefinition(name: string): ToolDefinition {
-  return TOOL_DEFINITIONS[name] ?? { active: `Running ${name}`, done: `Ran ${name}`, icon: Wrench };
+  return (
+    TOOL_DEFINITIONS[name] ?? {
+      active: `Running ${name}`,
+      done: `Ran ${name}`,
+      icon: Wrench,
+    }
+  );
 }
 
 function getToolDetail(part: EveDynamicToolPart, definition: ToolDefinition): string | undefined {
@@ -91,18 +114,29 @@ function FileDiffStats({ diff }: { readonly diff: FileDiff }) {
   );
 }
 
+function hasFailedCommand(part: EveDynamicToolPart, definition: ToolDefinition): boolean {
+  if (!definition.hasCommandOutput || part.state !== "output-available") return false;
+  if (typeof part.output !== "object" || part.output === null) return false;
+  if (!("exitCode" in part.output)) return false;
+  return typeof part.output.exitCode === "number" && part.output.exitCode !== 0;
+}
+
 function getLabel(
   part: EveDynamicToolPart,
   definition: ToolDefinition,
   isRunning: boolean,
 ): string {
   if (isRunning) return definition.active;
-  if (part.state === "output-error") return "Failed";
+  if (part.state === "output-error" || hasFailedCommand(part, definition)) return "Failed";
   if (part.state === "output-denied") return "Denied";
   return definition.done;
 }
 
-function getContent(part: EveDynamicToolPart, fileDiff?: FileDiff): ReactNode {
+function getContent(
+  part: EveDynamicToolPart,
+  definition: ToolDefinition,
+  fileDiff?: FileDiff,
+): ReactNode {
   if (part.state === "output-error") {
     return <CodeBlock>{part.errorText}</CodeBlock>;
   }
@@ -110,12 +144,17 @@ function getContent(part: EveDynamicToolPart, fileDiff?: FileDiff): ReactNode {
 
   if (fileDiff) return <Diff patch={fileDiff.diff} />;
 
-  if (part.toolName !== "bash") return null;
+  if (!definition.hasCommandOutput) return null;
   const stdout = getStringProperty(part.output, "stdout") ?? "";
   const stderr = getStringProperty(part.output, "stderr") ?? "";
   const output = joinNonEmptyLines([stdout, stderr]);
   if (!output) return null;
   return <CodeBlock>{output}</CodeBlock>;
+}
+
+function getFileDiff(part: EveDynamicToolPart): FileDiff | undefined {
+  if (part.state !== "output-available") return;
+  return fileDiffSchema.safeParse(part.output).data;
 }
 
 type ToolActivityProps = {
@@ -129,9 +168,9 @@ export function ToolActivity({ isActive, part, timing }: ToolActivityProps) {
   const elapsed = useElapsed(timing, isRunning);
   const definition = getToolDefinition(part.toolName);
   const label = getLabel(part, definition, isRunning);
-  const fileDiff = part.state === "output-available" ? parseFileDiff(part.output) : undefined;
-  let content = getContent(part, fileDiff);
-  if (!content && isRunning && part.toolName === "bash") content = <CommandLogs />;
+  const fileDiff = getFileDiff(part);
+  let content = getContent(part, definition, fileDiff);
+  if (!content && isRunning && definition.hasCommandLogs) content = <CommandLogs />;
   const path = getToolDetail(part, definition);
   let detail: ReactNode = path;
   if (path && definition.input === "filePath") detail = <WorkspaceFileLink path={path} />;

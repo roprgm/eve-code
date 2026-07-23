@@ -2,11 +2,7 @@ import { Sandbox } from "@vercel/sandbox";
 import { defineTool } from "eve/tools";
 import { bash } from "eve/tools/defaults";
 
-import {
-  recordActiveCommand,
-  runDetachedWorkspaceCommand,
-  watchCommand,
-} from "@/agent/bash-command";
+import { recordActiveCommand, runDetachedWorkspaceCommand, watchCommand } from "@/agent/lib/bash";
 
 export default defineTool({
   ...bash,

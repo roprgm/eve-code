@@ -17,8 +17,10 @@ import {
 export type SessionStatus = "error" | "ready" | "running" | "stopping";
 
 export type StoredSession = {
+  readonly branch?: string;
   readonly continuationToken?: string;
   readonly eveSessionId?: string;
+  readonly repository?: string;
   readonly status: SessionStatus;
   readonly streamIndex: number;
 };

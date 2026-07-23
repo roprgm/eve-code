@@ -2,7 +2,7 @@ import { Sandbox } from "@vercel/sandbox";
 import { DELETE, defineChannel, GET, POST } from "eve/channels";
 import { z } from "zod";
 
-import { runDetachedWorkspaceCommand } from "@/agent/bash-command";
+import { runDetachedWorkspaceCommand } from "@/agent/lib/bash";
 import { previewRunSchema } from "@/lib/preview";
 
 const route = "/eve/v1/sandbox/:sandboxId";

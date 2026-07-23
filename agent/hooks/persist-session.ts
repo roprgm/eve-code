@@ -1,8 +1,8 @@
 import { getVercelOidcToken } from "@vercel/oidc";
-import { ConvexHttpClient } from "convex/browser";
 import { Client, type HandleMessageStreamEvent } from "eve/client";
 import { defineHook, type HookContext } from "eve/hooks";
 
+import { getConvexClient } from "@/agent/lib/convex";
 import { api } from "@/convex/_generated/api";
 import { compactTurn } from "@/lib/eve-checkpoint";
 import { isPublicId, SESSION_ID_ATTRIBUTE } from "@/lib/identity";
@@ -12,12 +12,6 @@ type BoundaryEvent = Extract<
   HandleMessageStreamEvent,
   { type: "session.completed" | "session.failed" | "session.waiting" }
 >;
-
-function getPersistenceClient(): ConvexHttpClient {
-  const convexUrl = process.env.VITE_CONVEX_URL;
-  if (!convexUrl) throw new Error("Convex persistence is not configured.");
-  return new ConvexHttpClient(convexUrl);
-}
 
 function replayClient(): Client {
   const deploymentUrl = process.env.VERCEL_URL;
@@ -37,7 +31,7 @@ async function beginTurn(
   const sessionId = getStringProperty(ctx.session.auth.initiator?.attributes, SESSION_ID_ATTRIBUTE);
   if (!isPublicId(sessionId)) return;
 
-  const client = getPersistenceClient();
+  const client = getConvexClient();
   await client.mutation(api.persistence.beginTurn, {
     eveSessionId: ctx.session.id,
     sessionId,
@@ -50,7 +44,7 @@ async function commitTurn(event: BoundaryEvent, ctx: HookContext): Promise<void>
   const sessionId = getStringProperty(ctx.session.auth.initiator?.attributes, SESSION_ID_ATTRIBUTE);
   if (!isPublicId(sessionId)) return;
 
-  const client = getPersistenceClient();
+  const client = getConvexClient();
   const turnId = ctx.session.turn.id;
   const replayState = await client.query(api.persistence.replayState, {
     eveSessionId: ctx.session.id,

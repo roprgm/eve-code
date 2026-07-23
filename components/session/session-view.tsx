@@ -35,6 +35,7 @@ export function SessionView({ checkpointEvents, session, sessionId, title }: Ses
   const preview = getPreview(view.messages, session?.eveSessionId);
   const hasNotices = Boolean(view.pendingInput || view.error);
   const isWorkspaceOpen = workspaceState === "open";
+  const toggleWorkspace = session?.eveSessionId ? onToggleWorkspace : undefined;
   let conversationClass = "flex min-w-0 flex-1 flex-col";
   if (isWorkspaceOpen) {
     conversationClass = "hidden min-w-0 flex-1 flex-col md:flex md:w-1/2 md:flex-none";
@@ -78,9 +79,11 @@ export function SessionView({ checkpointEvents, session, sessionId, title }: Ses
       <CommandLogsProvider sessionId={session?.eveSessionId ?? ""}>
         <main className="flex min-w-0 flex-1 flex-col bg-background">
           <PageHeader
+            branch={session?.branch}
             isWorkspaceOpen={isWorkspaceOpen}
-            onToggleWorkspace={onToggleWorkspace}
+            onToggleWorkspace={toggleWorkspace}
             preview={preview}
+            repository={session?.repository}
             title={title}
             workspaceSessionId={session?.eveSessionId}
           />

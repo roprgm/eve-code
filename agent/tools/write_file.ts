@@ -2,7 +2,7 @@ import { defineTool } from "eve/tools";
 import { writeFile } from "eve/tools/defaults";
 import { z } from "zod";
 
-import { queueFileMutation } from "@/agent/file-edit";
+import { queueFileMutation } from "@/agent/lib/files";
 import { computeFileDiff, fileDiffSchema } from "@/lib/file-diff";
 
 const writeFileOutputSchema = fileDiffSchema.partial().extend({

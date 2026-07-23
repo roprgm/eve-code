@@ -18,7 +18,7 @@ type WorkspaceBrowserProps = {
 };
 
 function getBreadcrumbs(path: string): Breadcrumb[] {
-  const breadcrumbs: Breadcrumb[] = [];
+  const breadcrumbs: Breadcrumb[] = [{ label: "workspace", path: "" }];
   let currentPath = "";
   for (const segment of path.split("/")) {
     if (!segment) continue;
@@ -33,6 +33,10 @@ export function WorkspaceBrowser({ children, model, path, tree }: WorkspaceBrows
   const breadcrumbs = getBreadcrumbs(path);
 
   function onOpenPath(itemPath: string): void {
+    if (!itemPath) {
+      model.focusNearestPath(null);
+      return;
+    }
     const item = model.getItem(itemPath);
     if (!item) return;
     if ("expand" in item) item.expand();
@@ -54,15 +58,12 @@ export function WorkspaceBrowser({ children, model, path, tree }: WorkspaceBrows
   const breadcrumbItems = breadcrumbs.map((breadcrumb, index) => {
     let separator: ReactNode;
     if (index > 0) separator = <ChevronRight aria-hidden="true" className="size-3.5" />;
-    function onClick(): void {
-      onOpenPath(breadcrumb.path);
-    }
     return (
       <Fragment key={breadcrumb.path}>
         {separator}
         <button
           className="max-w-48 truncate rounded-sm px-1 py-0.5 text-sm text-muted-foreground outline-none hover:bg-sidebar-selected hover:text-foreground focus-visible:bg-sidebar-selected focus-visible:text-foreground last:text-foreground"
-          onClick={onClick}
+          onClick={() => onOpenPath(breadcrumb.path)}
           popoverTarget={popoverId}
           popoverTargetAction="show"
           type="button"

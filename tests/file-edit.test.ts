@@ -3,7 +3,7 @@ import type { ToolContext } from "eve/tools";
 import { writeFile as eveWriteFile } from "eve/tools/defaults";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { applyFileEdits } from "@/agent/file-edit";
+import { applyFileEdits } from "@/agent/lib/files";
 import editFile from "@/agent/tools/edit_file";
 import writeFile from "@/agent/tools/write_file";
 import { computeFileDiff, getFileDiffStats } from "@/lib/file-diff";

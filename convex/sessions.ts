@@ -51,10 +51,12 @@ export const get = query({
       .withIndex("by_session_and_stream_index", (index) => index.eq("sessionId", sessionId))
       .collect();
     return {
+      branch: session.branch,
       continuationToken: session.continuationToken,
       events: turns.flatMap(({ events }) => events),
       eveSessionId: session.eveSessionId,
       name: session.name,
+      repository: session.repository,
       status: session.status,
       streamIndex: session.streamIndex,
     };
@@ -74,6 +76,22 @@ export const create = mutation({
       status: "ready",
       streamIndex: 0,
       updatedAt: Date.now(),
+    });
+  },
+});
+
+export const syncGit = mutation({
+  args: {
+    branch: v.optional(v.string()),
+    repository: v.optional(v.string()),
+    sessionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const session = await getSession(ctx, args.sessionId);
+    if (!session) return;
+    await ctx.db.patch(session._id, {
+      branch: args.branch,
+      repository: args.repository,
     });
   },
 });

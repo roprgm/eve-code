@@ -1,7 +1,7 @@
 # Architecture
 
 > Living document. Unless a section is marked **Planned**, it describes the
-> implementation at the end of Phase 4.
+> current implementation.
 
 eve-code is a browser coding agent in the spirit of Claude Code or Codex. A user
 starts a session, asks an agent to build something, and watches it work inside a
@@ -27,7 +27,7 @@ Browser (Vite + React)
 Eve service ───────────────────────▶ Vercel Sandbox
    │ one durable Eve session              │ persistent /workspace
    │ per conversation                      └─ dev server ──▶ Preview URL
-   │ checkpoint hook
+   │ checkpoint and Git hooks
    ▼
 Convex (sessions, turns) ──▶ subscribed browser cache
 
@@ -45,8 +45,8 @@ sandbox, runs the agent, serializes turns, and owns the durable event stream.
    and turn serialization. There is no separate project model until Git-backed
    repositories provide a real reason to group sessions.
 3. **The workspace starts empty.** `agent/sandbox.ts` selects Eve's Vercel backend.
-   No framework or seed is installed until the task needs one; optional Eve skills
-   provide stack recipes.
+   A repository start asks the agent to clone through `clone_repository`; otherwise
+   no framework or seed is installed until the task needs one.
 4. **The agent starts with Eve's hands.** `read_file`, `glob`, `grep`, and the other
    built-ins remain framework tools. Narrow local adapters add complete-write diffs,
    exact edits, preview startup, and the Bash gaps described below.
@@ -60,15 +60,15 @@ sandbox, runs the agent, serializes turns, and owns the durable event stream.
    do not enforce user ownership. Deployments stay private until authentication,
    ownership, and cost policy are designed.
 
-ZIP export, Git-backed repositories, the reviewer subagent, and human file editing
-are planned features, not current architecture. Approvals and a human terminal
-remain optional.
+The reviewer subagent and human file editing are planned features, not current
+architecture. Approvals and a human terminal remain optional.
 
 ## Data model
 
 ```text
 sessions   sessionId, eveSessionId?, name, continuationToken?,
-           status { ready | running | stopping | error }, streamIndex, updatedAt
+           repository?, branch?, status { ready | running | stopping | error },
+           streamIndex, updatedAt
 turns      sessionId, turnId, events, searchText, streamIndex,
            usage { inputTokens, outputTokens }
 ```
@@ -91,6 +91,8 @@ Eve's built-ins are the base. The local additions are deliberately narrow:
   a detached Vercel Sandbox command, waits with the turn's abort signal, kills the
   command on interruption, returns the tail of bounded stdout/stderr, and exposes
   live logs to the active tool activity.
+- **`clone_repository`** validates a public GitHub repository and clones it into the
+  current workspace with a repository-specific activity.
 - **`write_file`** preserves Eve's create/overwrite contract and read-before-write
   protection, adding a bounded diff for complete replacements.
 - **`edit_file`** applies batched, exact, unique, non-overlapping replacements to one
@@ -141,9 +143,12 @@ Here `sessionId` is Eve's durable session ID, not the app's public session ID.
 
 ## Frontend
 
-- **Home** starts a session optimistically from the composer; the sidebar lists
-  sessions newest first.
+- **Home** chooses between an empty workspace and a public GitHub repository.
+  Repository import is a visible first turn that asks the agent to clone through its
+  dedicated tool, so success and failure appear as a repository activity.
+  The sidebar lists sessions newest first.
 - **Session** renders the durable conversation, Preview control, and a Files toggle.
+  Its header shows the selected GitHub repository when the workspace has one.
   The read-only workspace contains breadcrumbs, a keyboard-accessible tree, and a
   highlighted source viewer. File tool activity can open the corresponding file.
 - **Activity** projects Eve events into reasoning, tool calls, live Bash output,
@@ -153,12 +158,17 @@ Here `sessionId` is Eve's durable session ID, not the app's public session ID.
 The tree refetches after the next Convex checkpoint changes the session stream index.
 It intentionally has no watcher yet. Routes are `/` and `/s/:sessionId`.
 
+A dedicated hook checks the workspace for Git after each completed turn. It derives
+the GitHub origin and current branch from the sandbox and syncs them to the product
+session, whether Git was created from the Home shortcut or by a later agent command.
+
 ## Performance
 
 - **Convex is the local cache.** Convex subscriptions feed TanStack Query with an
   infinite stale time; navigation renders cached data and receives updates in place.
-- **Creation is optimistic.** The browser creates public IDs, renders the first
-  message, and navigates before the session mutation and first Eve turn settle.
+- **Creation is optimistic.** The browser creates public IDs and navigates before
+  the session mutation settles. When creation includes a first message, it renders
+  immediately while the first Eve turn starts.
 - **The live path stays live.** Eve streams turns; the workspace channel separately
   streams the active Bash command.
 - **Heavy UI is lazy.** File diffs load their renderer only when a diff appears. The
@@ -182,9 +192,10 @@ instead of bending the rule.
 ```text
 docs/           platform research and upstream notes
 agent/          Eve agent and its server-side adapters
-  agent.ts  sandbox.ts  bash-command.ts  file-edit.ts  workspace-files.ts  instructions.md
+  agent.ts  sandbox.ts  instructions.md
   channels/     Eve transport, preview control, read-only workspace and logs
   hooks/        turn checkpoint persistence
+  lib/          Agent-specific helpers
   skills/       optional stack recipes
   tools/        bash.ts  write_file.ts  edit_file.ts  start_dev.ts
 convex/         schema, session operations, and checkpoint persistence
@@ -232,13 +243,13 @@ story. The repository also avoids a parallel HTTP framework, direct LLM SDKs, an
 iframe preview infrastructure because Eve and the platform already provide the
 needed boundaries.
 
-## Planned: workspace export
+## Workspace export
 
-Phase 5 extends the existing workspace channel instead of introducing a long-lived
-sandbox server:
+Workspace export extends the existing workspace channel instead of introducing a
+long-lived sandbox server:
 
 ```text
-Browser ── Eve workspace route ──▶ Vercel Sandbox ──▶ ZIP of /workspace
+Browser ── Eve workspace route ──▶ Vercel Sandbox ──▶ TAR of /workspace
 ```
 
 The route creates a temporary archive inside the sandbox, excludes `node_modules`,
@@ -248,7 +259,6 @@ its own PTY server and security boundary if it returns.
 
 ## Planned: later phases
 
-- **Phase 5:** ZIP export through the workspace channel.
 - **Phase 6:** Git-backed repositories that can group sessions and synchronize them
   through commits.
 - **Phase 7:** a reviewer subagent that checks out the commit under review in its own
