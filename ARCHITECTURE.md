@@ -110,8 +110,8 @@ Eve's built-ins are the base. The local additions are deliberately narrow:
   a detached Vercel Sandbox command, waits with the turn's abort signal, kills the
   command on interruption, returns the tail of bounded stdout/stderr, and exposes
   live logs to the active tool activity.
-- **`clone_repository`** validates a public GitHub repository and clones it into the
-  current workspace with a repository-specific activity.
+- **`clone_repository`** validates a public GitHub repository, clones it into the
+  current workspace, and returns its root entries in the repository activity.
 - **`write_file`** preserves Eve's create/overwrite contract and read-before-write
   protection, adding a bounded diff for complete replacements.
 - **`edit_file`** applies batched, exact, unique, non-overlapping replacements to one
