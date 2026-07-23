@@ -7,14 +7,15 @@ const diffOptions = {
   hunkSeparators: "simple",
   theme: "pierre-dark-soft",
   themeType: "dark",
-  unsafeCSS: "[data-diffs-header] { display: none; } [data-line] span { opacity: .8; }",
+  unsafeCSS:
+    ":host { --diffs-bg: transparent; background-color: transparent; } [data-diffs-header] { display: none; } [data-line] span { opacity: .8; }",
 } as const;
 
 export default function DiffRenderer({ patch }: { readonly patch: string }) {
   const inlinePatch = trimPatchContext(patch, 20);
   return (
     <PatchDiff
-      className="app-scrollbar message-diff scroll-fade max-h-64 overflow-auto rounded-sm bg-muted"
+      className="app-scrollbar message-diff scroll-fade -ml-3 max-h-64 overflow-auto"
       options={diffOptions}
       patch={inlinePatch}
     />

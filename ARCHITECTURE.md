@@ -60,8 +60,9 @@ sandbox, runs the agent, serializes turns, and owns the durable event stream.
    do not enforce user ownership. Deployments stay private until authentication,
    ownership, and cost policy are designed.
 
-Approvals, the reviewer subagent, ZIP export, the shared terminal, and human file
-editing are planned features, not current architecture.
+ZIP export, Git-backed repositories, the reviewer subagent, and human file editing
+are planned features, not current architecture. Approvals and a human terminal
+remain optional.
 
 ## Data model
 
@@ -133,6 +134,7 @@ The current workspace routes are:
 GET /eve/v1/workspace/:sessionId
 GET /eve/v1/workspace/:sessionId/file?path=...
 GET /eve/v1/workspace/:sessionId/command
+GET /eve/v1/workspace/:sessionId/download
 ```
 
 Here `sessionId` is Eve's durable session ID, not the app's public session ID.
@@ -224,38 +226,42 @@ The runtime remains intentionally short:
   source, diff, and tree rendering
 - Zod for HTTP boundary validation
 
-xterm and CodeMirror are not installed; their planned phases must earn those
-dependencies. The repository also avoids a parallel HTTP framework, direct LLM SDKs,
-and iframe preview infrastructure because Eve and the platform already provide the
+xterm and CodeMirror are not installed. Human editing must earn CodeMirror, and a
+terminal remains optional because agent Bash already covers the core execution
+story. The repository also avoids a parallel HTTP framework, direct LLM SDKs, and
+iframe preview infrastructure because Eve and the platform already provide the
 needed boundaries.
 
-## Planned: sandbox server
+## Planned: workspace export
 
-Phases 5 and 6 add one small token-guarded server inside the existing sandbox:
+Phase 5 extends the existing workspace channel instead of introducing a long-lived
+sandbox server:
 
 ```text
-Browser ── GET https://…/zip?token=… ─────▶ ZIP of /workspace
-Browser ── xterm.js ── wss://…/?token=… ──▶ pty (bash)
+Browser ── Eve workspace route ──▶ Vercel Sandbox ──▶ ZIP of /workspace
 ```
 
-Its server-only packages live inside the sandbox, not this repository's dependency
-list. It must be recreated after a sandbox resume because processes are ephemeral.
-The verified port, URL, WebSocket, and resume mechanics live in
-[docs/sandbox.md](./docs/sandbox.md).
+The route creates a temporary archive inside the sandbox, excludes `node_modules`,
+and returns the bytes through Eve. It needs no extra port, token, dependency,
+or process to restore after resume. A human terminal moves to Later and must justify
+its own PTY server and security boundary if it returns.
 
 ## Planned: later phases
 
-- **Phase 5:** ZIP export.
-- **Phase 6:** a terminal sharing the agent's sandbox.
-- **Phase 7:** Eve human-in-the-loop approval for risky Bash commands.
-- **Phase 8:** a reviewer subagent for build and runtime verification.
-- **Phase 9:** human editing with lazy CodeMirror.
-- **Later:** identity and cost policy, Git-backed repositories that can group
-  sessions, GitHub as an optional remote, more stack skills, and evals.
+- **Phase 5:** ZIP export through the workspace channel.
+- **Phase 6:** Git-backed repositories that can group sessions and synchronize them
+  through commits.
+- **Phase 7:** a reviewer subagent that checks out the commit under review in its own
+  sandbox.
+- **Phase 8:** human editing with lazy CodeMirror.
+- **Later:** approvals for external side effects, an optional human terminal,
+  identity and cost policy, more stack skills, and evals.
 
 Cross-session work has been verified as feasible with one sandbox per session and
-local Git synchronization; the research is in [docs/sandbox.md](./docs/sandbox.md).
-No current code models a repository or groups sessions.
+local Git synchronization; Phase 6 builds on the research in
+[docs/sandbox.md](./docs/sandbox.md). No current code models a repository or groups
+sessions. The reviewer follows Git because Eve subagents have independent sandboxes
+and cannot inspect the root session's uncommitted filesystem directly.
 
 ## Upstream and investigation notes
 

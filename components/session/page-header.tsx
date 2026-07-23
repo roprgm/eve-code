@@ -1,4 +1,4 @@
-import { Files, PanelLeft, SquarePen, X } from "lucide-react";
+import { PanelLeft, PanelRight, SquarePen, X } from "lucide-react";
 import { useOutletContext } from "react-router";
 
 import { SandboxControl } from "@/components/session/sandbox-control";
@@ -10,6 +10,7 @@ type PageHeaderProps = {
   readonly onToggleWorkspace?: () => void;
   readonly preview?: Preview;
   readonly title: string;
+  readonly workspaceSessionId?: string;
 };
 
 type SidebarContext = {
@@ -27,12 +28,12 @@ function WorkspaceToggle({
 }) {
   if (!onToggle) return null;
   const label = isOpen ? "Close files" : "Open files";
-  let icon = <Files aria-hidden="true" />;
+  let icon = <PanelRight aria-hidden="true" />;
   if (isOpen) {
     icon = (
       <>
         <X aria-hidden="true" className="md:hidden" />
-        <Files aria-hidden="true" className="hidden md:block" />
+        <PanelRight aria-hidden="true" className="hidden md:block" />
       </>
     );
   }
@@ -55,9 +56,12 @@ export function PageHeader({
   onToggleWorkspace,
   preview,
   title,
+  workspaceSessionId,
 }: PageHeaderProps) {
   const { isSidebarExpanded, openNewSession, toggleSidebar } = useOutletContext<SidebarContext>();
-  const sandboxControl = preview ? <SandboxControl preview={preview} /> : null;
+  const sandboxControl = preview ? (
+    <SandboxControl preview={preview} sessionId={workspaceSessionId} />
+  ) : null;
   const sidebarActions = isSidebarExpanded ? null : (
     <>
       <Button

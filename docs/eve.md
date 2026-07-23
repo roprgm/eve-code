@@ -18,8 +18,8 @@ Both serialize mutations per file and keep their UI diffs bounded.
 
 A file at the same slug takes over the built-in. The local `bash` and `write_file`
 tools spread Eve's definitions and replace only the behavior the product needs.
-Approval policies can be added independently in Phase 7 with the helpers from
-`eve/tools/approval`: `always()`, `once()`, and `never()`.
+Approval policies remain available for future external side effects through the
+helpers from `eve/tools/approval`: `always()`, `once()`, and `never()`.
 
 ## Sandbox definition
 
@@ -50,8 +50,8 @@ Approval policies can be added independently in Phase 7 with the helpers from
 ## Custom channels
 
 `defineChannel` supports HTTP routes and `WS()` WebSocket routes with the same
-helpers (`send`, `getSession`, `receive`, ...). This is the fallback proxy path for
-the terminal if direct browser-to-sandbox WebSockets ever misbehave.
+helpers (`send`, `getSession`, `receive`, ...). This could proxy a terminal if that
+optional feature ever earns its extra transport.
 
 ## Persistence pattern
 

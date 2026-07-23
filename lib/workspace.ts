@@ -9,3 +9,7 @@ export const workspaceFileSchema = z.discriminatedUnion("status", [
 ]);
 
 export type WorkspaceFile = Readonly<z.infer<typeof workspaceFileSchema>>;
+
+export function getWorkspaceUrl(sessionId: string): string {
+  return `/eve/v1/workspace/${encodeURIComponent(sessionId)}`;
+}

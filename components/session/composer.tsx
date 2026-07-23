@@ -42,7 +42,7 @@ export function Composer({
   }
 
   return (
-    <div className="shrink-0 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6">
+    <div className="shrink-0 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6">
       <form
         className="mx-auto max-w-3xl rounded-2xl border border-border/40 bg-muted p-2 transition-colors focus-within:border-ring/50"
         onSubmit={handleSubmit}
@@ -86,9 +86,6 @@ export function Composer({
           )}
         </div>
       </form>
-      <p className="mx-auto mt-2 max-w-3xl text-center text-sm text-muted-foreground">
-        eve-code can make mistakes. Review what it builds.
-      </p>
     </div>
   );
 }

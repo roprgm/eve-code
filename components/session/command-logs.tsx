@@ -1,6 +1,7 @@
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 
 import { CodeBlock } from "@/components/ui/code-block";
+import { getWorkspaceUrl } from "@/lib/workspace";
 
 const displayCharactersMax = 4_000;
 const reconnectDelayMs = 700;
@@ -41,7 +42,7 @@ async function followCommandLogs(
   signal: AbortSignal,
   onOutput: (output: string) => void,
 ): Promise<void> {
-  const url = `/eve/v1/workspace/${encodeURIComponent(sessionId)}/command`;
+  const url = `${getWorkspaceUrl(sessionId)}/command`;
   while (!signal.aborted) {
     try {
       const response = await fetch(url, { cache: "no-store", signal });

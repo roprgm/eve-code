@@ -17,8 +17,8 @@ hot reload.
 - A keyboard-accessible file tree and syntax-highlighted read-only viewer
 - Optimistic session creation, plus session rename and deletion
 
-The next phases add ZIP export, a shared terminal, and human approval for risky
-commands. See [PLAN.md](./PLAN.md) for the full roadmap.
+The next phases add ZIP export, Git-backed repositories, and a reviewer subagent.
+See [PLAN.md](./PLAN.md) for the full roadmap.
 
 > eve-code is a demo, not a hosted multi-user product. It has no app-level
 > authentication or session ownership. Keep deployments private unless you add

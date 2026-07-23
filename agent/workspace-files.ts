@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { posix } from "node:path";
 import type { Sandbox } from "@vercel/sandbox";
 
@@ -5,6 +6,17 @@ import { type WorkspaceFile, workspacePathCountMax, workspacePathsSchema } from 
 
 const workspaceRoot = "/workspace";
 const fileSizeBytesMax = 200 * 1024;
+const archiveScript = `
+import os, sys, zipfile
+root, output = sys.argv[1:]
+with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
+    for directory, names, files in os.walk(root):
+        names[:] = [name for name in names if name != "node_modules" and not os.path.islink(os.path.join(directory, name))]
+        for name in files:
+            path = os.path.join(directory, name)
+            if not os.path.islink(path):
+                archive.write(path, os.path.relpath(path, root))
+`;
 const hiddenDirectoryPattern =
   ".*/(\\.git|node_modules|\\.venv|venv|\\.next|\\.nuxt|\\.svelte-kit|\\.turbo)";
 const findArgs = [
@@ -41,6 +53,22 @@ export function decodeWorkspaceFile(path: string, contents: Buffer): WorkspaceFi
     };
   } catch {
     return { path, status: "binary" };
+  }
+}
+
+export async function createWorkspaceArchive(sandbox: Sandbox): Promise<Buffer> {
+  const archivePath = `/tmp/eve-code-${randomUUID()}.zip`;
+  try {
+    const command = await sandbox.runCommand({
+      args: ["-c", archiveScript, workspaceRoot, archivePath],
+      cmd: "python3",
+      cwd: workspaceRoot,
+      timeoutMs: 60_000,
+    });
+    if (command.exitCode !== 0) throw new Error("Could not archive the workspace.");
+    return await sandbox.fs.readFile(archivePath);
+  } finally {
+    await sandbox.fs.unlink(archivePath).catch(() => undefined);
   }
 }
 

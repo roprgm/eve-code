@@ -3,7 +3,7 @@
 > Living document. The work is split into micro-phases: vertical increments sized so
 > one implementing agent can complete one phase in one focused session.
 
-**Current milestone: closing Phase 4.**
+**Current milestone: Phase 5.**
 
 Rules for every phase:
 
@@ -37,7 +37,7 @@ Throwaway code; the deliverable is answers written into the docs.
 - **Out of scope:** anything reusable; this code is deleted.
 - **Done when:** the remaining sandbox items disappear from ARCHITECTURE.md's open
   questions, replaced by confirmed mechanisms.
-- **Reads:** Current shape, Planned: sandbox server, docs/sandbox.md, Open questions.
+- **Reads:** Current shape, docs/sandbox.md, Open questions.
 - **Status: done.** Findings recorded in docs/sandbox.md —
   ports, URLs, and WebSockets work; the filesystem survives resume but spawned
   processes do not, so `start_dev` must be called again after resume. One caveat: in-browser HMR
@@ -113,7 +113,7 @@ Throwaway code; the deliverable is answers written into the docs.
   opens the highlighted contents with its full path, keyboard tree navigation works,
   and the renderer stays off the initial path within the measured bundle budget.
 - **Reads:** Frontend, Performance (lazy heavyweights), docs/sandbox.md.
-- **Status: implementation complete; design review pending.** The tree refreshes
+- **Status: done.** Design reviewed and approved. The tree refreshes
   from the committed stream index, activity links open files, and binary, missing,
   oversized, and unsafe paths are handled. With the same `node_modules`, the
   isolated viewer commit (`9174af1`) moved initial JavaScript
@@ -121,52 +121,47 @@ Throwaway code; the deliverable is answers written into the docs.
   Shiki remain in lazy chunks. This comparison isolates the viewer change; later Bash
   work is not attributed to Phase 4.
 
-### Phase 5 — Zip download
+## Workspace portability
+
+### Phase 5 — ZIP download
 
 - **Goal:** take your code home.
-- **Scope:** a tiny sandbox-server serving the zip route with its handshake token;
-  Download button on the session page.
-- **Out of scope:** the pty/terminal half of sandbox-server.
-- **Done when:** the downloaded zip unpacks into the working workspace, excluding
-  node_modules.
-- **Reads:** Planned: sandbox server, Current principle 6, docs/sandbox.md.
+- **Scope:** an Eve workspace route creates a temporary archive inside the sandbox,
+  returns it to the browser, and powers a Download action on the session page.
+- **Out of scope:** a persistent sandbox server, terminal, and stored archives.
+- **Done when:** the downloaded zip unpacks into the current workspace contents with
+  every `node_modules` directory excluded, without breaking Preview.
+- **Reads:** Planned: workspace export, Current principles 1 and 6, docs/sandbox.md.
+- **Status: in progress.** Implementation and automated verification are complete;
+  design review remains.
 
-### Phase 6 — Terminal
+## Repositories and delegation
 
-- **Goal:** a shell into the same sandbox.
-- **Scope:** pty support in sandbox-server; Terminal tab with xterm over WebSocket,
-  token-guarded, lazy-loaded.
-- **Out of scope:** multiple terminals, persistence of scrollback.
-- **Done when:** you can `ls` the files the agent created and touch a file the agent
-  can then read.
-- **Reads:** Planned: sandbox server, docs/sandbox.md.
+### Phase 6 — Git-backed repositories
 
-## Eve in depth
+- **Goal:** make a real repository the durable project boundary.
+- **Scope:** associate sessions with a repository, keep one sandbox per session, and
+  synchronize work through Git commits; broker remote credentials through Eve's
+  session boundary when a GitHub remote is used.
+- **Out of scope:** general multi-user permissions, pull-request UI, and background
+  bidirectional sync.
+- **Done when:** two sessions for one repository can exchange a commit without a
+  shared filesystem, and a resumed session keeps working from its repository state.
+- **Reads:** Data model, Open questions, docs/sandbox.md (Git between sandboxes).
 
-### Phase 7 — Human-in-the-loop
-
-- **Goal:** risky commands ask first.
-- **Scope:** add Eve's `approval` policy to the existing `bash` adapter; approve/deny
-  UI in the conversation (inherited input-request pattern); policy for what needs
-  approval written in instructions.
-- **Out of scope:** per-user policies.
-- **Done when:** "delete everything and start over" pauses for approval; denying it
-  leaves the workspace intact.
-- **Reads:** Current principle 1, Framework edges and workarounds, docs/eve.md
-  (overrides and approvals).
-
-### Phase 8 — Reviewer subagent
+### Phase 7 — Reviewer subagent
 
 - **Goal:** show delegation where it earns its place.
-- **Scope:** `agent/subagents/reviewer/` verifying build and running app before the
-  root agent declares a request done; its activity visible in the stream.
+- **Scope:** `agent/subagents/reviewer/` checks out the commit under review in its own
+  sandbox, verifies the build and running app, and reports findings before the root
+  agent declares success; its activity is visible in the stream.
 - **Done when:** a request that produces a broken build gets caught and fixed before
   the agent reports success.
-- **Reads:** Current principles 1 and 6, Planned: later phases.
+- **Reads:** Current principles 1 and 6, Phase 6, Eve subagent docs.
 
 ## Beyond
 
-### Phase 9 — Human editing
+### Phase 8 — Human editing
 
 - **Goal:** human and agent edit interchangeably.
 - **Scope:** CodeMirror replacing the read-only viewer, lazy-loaded; save uses the
@@ -181,11 +176,12 @@ Throwaway code; the deliverable is answers written into the docs.
   from the repo is an open product decision (see ARCHITECTURE.md's Open questions).
   Sign-in, ownership, quotas, and opening the deployment to the public all wait on
   it; the per-turn usage record already feeds it with real numbers.
-- GitHub integration: `git` + `gh` in `bootstrap()`, a user token brokered via
-  `onSession()`, PRs as plain commands. This is also where repositories become the
-  project boundary and may group multiple sessions, with one Eve sandbox per session
-  and local Git syncing commits between them. The mechanics are verified in
-  docs/sandbox.md and ARCHITECTURE.md's planned later phases.
+- Terminal: reconsider only if direct human shell access proves worth a token-guarded
+  PTY server, WebSocket transport, xterm, and their security surface. Agent Bash and
+  live command output already cover the demo's core execution story.
+- Approvals: add Eve human-in-the-loop policy when Git credentials or other external
+  side effects make confirmation materially useful; sandbox-only Bash does not need
+  the ceremony.
 - More independent stack skills (Next.js, Express, Python) as demand proves them;
   Eve evals in CI.
 - BYO API key for heavy users; sandbox idle auto-stop tuning if compute dominates.

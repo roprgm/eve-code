@@ -7,7 +7,7 @@ import FileViewer from "@/components/code/file-viewer";
 import { useWorkspaceTree } from "@/components/workspace/use-workspace-tree";
 import { WorkspaceBrowser } from "@/components/workspace/workspace-browser";
 import type { WorkspaceFileRequest } from "@/components/workspace/workspace-navigation";
-import { workspaceFileSchema, workspacePathsSchema } from "@/lib/workspace";
+import { getWorkspaceUrl, workspaceFileSchema, workspacePathsSchema } from "@/lib/workspace";
 
 const emptyPaths: string[] = [];
 
@@ -34,7 +34,7 @@ export default function WorkspacePanel({
   readonly revision: number;
   readonly sessionId: string;
 }) {
-  const baseUrl = `/eve/v1/workspace/${encodeURIComponent(sessionId)}`;
+  const baseUrl = getWorkspaceUrl(sessionId);
   const pathsQuery = useQuery({
     enabled: Boolean(sessionId),
     placeholderData: keepPreviousData,

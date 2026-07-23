@@ -26,8 +26,8 @@ function ActivitySummary({
         <span className={isAnimated ? "shimmer" : undefined}>{label}</span>
         {detail && <span className="font-mono text-sm"> {detail}</span>}
       </span>
-      {meta}
       {elapsed && <span className="shrink-0 text-sm opacity-60">{elapsed}</span>}
+      {meta}
     </>
   );
 }

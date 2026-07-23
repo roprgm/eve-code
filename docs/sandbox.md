@@ -79,6 +79,6 @@ ongoing deltas travel as commits.
 
 ## Observed defaults
 
-2 vCPUs, 4 GB memory, region `iad1`, `node24`, git 2.49 in the image. Creation from
-scratch takes under a second; resume ~0.3s. Sandboxes created without a name get a
-random one; Eve always names them (see above).
+2 vCPUs, 4 GB memory, region `iad1`, `node24`, Python 3, and git 2.49 in the image.
+Creation from scratch takes under a second; resume ~0.3s. Sandboxes created without
+a name get a random one; Eve always names them (see above).

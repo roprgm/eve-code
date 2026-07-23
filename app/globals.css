@@ -148,7 +148,6 @@
 
 .message-diff {
   --diffs-dark: var(--muted-foreground);
-  --diffs-dark-bg: var(--muted);
   --diffs-font-size: 11px;
   --diffs-gap-block: 0px;
   --diffs-line-height: var(--text-sm--line-height);

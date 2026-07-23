@@ -82,6 +82,7 @@ export function SessionView({ checkpointEvents, session, sessionId, title }: Ses
             onToggleWorkspace={onToggleWorkspace}
             preview={preview}
             title={title}
+            workspaceSessionId={session?.eveSessionId}
           />
           <div className="flex min-h-0 flex-1">
             <section className={conversationClass}>

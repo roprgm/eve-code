@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ExternalLink, LoaderCircle, Play, Power } from "lucide-react";
+import { ChevronDown, Download, ExternalLink, LoaderCircle, Play, Power } from "lucide-react";
 import type { ReactNode } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { getMenuAnchorStyle, MenuContent, MenuItem } from "@/components/ui/menu";
 import type { Preview } from "@/lib/preview";
+import { getWorkspaceUrl } from "@/lib/workspace";
 
 const sandboxSchema = z.object({
   status: z.enum([
@@ -80,8 +81,10 @@ function PreviewIcon({ action }: { readonly action: PreviewAction }) {
 function PreviewControl({
   action,
   disabled,
+  isDownloadDisabled,
   label,
   menuId,
+  onDownload,
   onPreview,
   onStop,
   preview,
@@ -90,8 +93,10 @@ function PreviewControl({
 }: {
   readonly action: PreviewAction;
   readonly disabled: boolean;
+  readonly isDownloadDisabled: boolean;
   readonly label: string;
   readonly menuId: string;
+  readonly onDownload: () => void;
   readonly onPreview: () => void;
   readonly onStop?: () => void;
   readonly preview: Preview;
@@ -101,15 +106,12 @@ function PreviewControl({
   let stopAction: ReactNode;
   if (onStop) {
     stopAction = (
-      <div className="mt-1 border-t pt-1">
-        <MenuItem className="text-sm text-destructive" onClick={onStop} popoverTarget={menuId}>
-          <Power aria-hidden="true" className="size-3.5" />
-          Stop preview
-        </MenuItem>
-      </div>
+      <MenuItem className="text-sm text-destructive" onClick={onStop} popoverTarget={menuId}>
+        <Power aria-hidden="true" className="size-3.5" />
+        Stop preview
+      </MenuItem>
     );
   }
-
   return (
     <div className="ml-auto flex">
       <Button
@@ -147,7 +149,18 @@ function PreviewControl({
             {getSandboxLabel(preview.sandboxId)}
           </span>
         </div>
-        {stopAction}
+        <div className="mt-1 border-t pt-1">
+          <MenuItem
+            className="text-sm"
+            disabled={isDownloadDisabled}
+            onClick={onDownload}
+            popoverTarget={menuId}
+          >
+            <Download aria-hidden="true" className="size-3.5" />
+            Download Zip
+          </MenuItem>
+          {stopAction}
+        </div>
       </MenuContent>
     </div>
   );
@@ -182,7 +195,7 @@ function getControlState(status: VisibleStatus, hasError: boolean): ControlState
   return { action: "run", disabled: false, label: "Preview" };
 }
 
-export function SandboxControl({ preview }: { preview: Preview }) {
+export function SandboxControl({ preview, sessionId }: { preview: Preview; sessionId?: string }) {
   const queryClient = useQueryClient();
   const queryKey = ["sandbox", preview.sandboxId, preview.port] as const;
   const sandbox = useQuery({
@@ -209,6 +222,11 @@ export function SandboxControl({ preview }: { preview: Preview }) {
     action.mutate("stop");
   }
 
+  function onDownload(): void {
+    if (!sessionId) return;
+    window.location.assign(`${getWorkspaceUrl(sessionId)}/download`);
+  }
+
   function onPreview(): void {
     if (control.action === "open") {
       openPreviewTab(url);
@@ -227,13 +245,16 @@ export function SandboxControl({ preview }: { preview: Preview }) {
 
   let stopPreview: (() => void) | undefined;
   if (status === "running") stopPreview = onStop;
+  const isDownloadDisabled = !sessionId;
 
   return (
     <PreviewControl
       action={control.action}
       disabled={control.disabled}
+      isDownloadDisabled={isDownloadDisabled}
       label={control.label}
       menuId={`sandbox-info-${preview.sandboxId}`}
+      onDownload={onDownload}
       onPreview={onPreview}
       onStop={stopPreview}
       preview={preview}

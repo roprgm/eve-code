@@ -3,7 +3,12 @@ import { defineChannel, GET } from "eve/channels";
 import { z } from "zod";
 
 import { getActiveCommandLogStream } from "@/agent/bash-command";
-import { getWorkspacePath, listWorkspaceFiles, readWorkspaceFile } from "@/agent/workspace-files";
+import {
+  createWorkspaceArchive,
+  getWorkspacePath,
+  listWorkspaceFiles,
+  readWorkspaceFile,
+} from "@/agent/workspace-files";
 import { workspacePathSchema } from "@/lib/workspace";
 
 const route = "/eve/v1/workspace/:sessionId";
@@ -46,6 +51,21 @@ export default defineChannel({
       if (!commandLogs) return new Response(null, { status: 204 });
       return new Response(commandLogs, {
         headers: { "cache-control": "no-store", "content-type": "text/plain; charset=utf-8" },
+      });
+    }),
+    GET(`${route}/download`, async (_request, { params }) => {
+      const sessionId = getSessionId(params);
+      if (!sessionId) return invalidRequest();
+      const sandbox = await getSandbox(sessionId);
+      if (!sandbox) return Response.json({ error: "Workspace not found." }, { status: 404 });
+      const archive = await createWorkspaceArchive(sandbox);
+      return new Response(Uint8Array.from(archive), {
+        headers: {
+          "cache-control": "no-store",
+          "content-disposition": 'attachment; filename="workspace.zip"',
+          "content-length": String(archive.byteLength),
+          "content-type": "application/zip",
+        },
       });
     }),
     GET(`${route}/file`, async (request, { params }) => {
