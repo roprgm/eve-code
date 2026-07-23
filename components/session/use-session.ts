@@ -1,4 +1,5 @@
 import { useConvexMutation } from "@convex-dev/react-query";
+import { useConvexConnectionState } from "convex/react";
 import type { EveMessage, EveMessagePart, SendTurnPayload, SessionState } from "eve/client";
 import { useEffect, useMemo } from "react";
 
@@ -88,18 +89,32 @@ function availableInput(input: ReturnType<typeof findPendingInput>) {
   return input;
 }
 
-function isCheckpointed(
+export function isSessionCheckpointed(
   session: StoredSession | undefined,
   runtime: SessionRuntime | undefined,
 ): boolean {
-  if (!session) return false;
-  if (!runtime) return false;
-  if (!runtime.events.length) return session.streamIndex > runtime.connection.index;
-  return session.streamIndex >= runtime.connection.index;
+  if (!session || !runtime) return false;
+  if (session.status === "running" || session.status === "stopping") return false;
+  if (session.streamIndex < runtime.connection.index) return false;
+  if (!runtime.optimistic) return true;
+  return session.streamIndex > runtime.optimistic.startIndex;
+}
+
+export function isSessionGenerating(
+  session: StoredSession | undefined,
+  runtime: SessionRuntime | undefined,
+): boolean {
+  if (isSessionCheckpointed(session, runtime)) return false;
+  const runtimeStatus = runtime?.connection.status;
+  if (runtimeStatus === "settled" || runtimeStatus === "stopped") return false;
+  if (session?.status === "running") return true;
+  return runtimeStatus === "running" || runtimeStatus === "disconnected";
 }
 
 export function useSession({ checkpointEvents, session, sessionId }: UseSessionOptions) {
+  const connectionCount = useConvexConnectionState().connectionCount;
   const status = session?.status;
+  const eveSessionId = session?.eveSessionId;
   const runtime = useSessionRuntime(sessionId);
   const runtimeStatus = runtime?.connection.status;
   const cursor = session?.streamIndex ?? 0;
@@ -112,13 +127,16 @@ export function useSession({ checkpointEvents, session, sessionId }: UseSessionO
     [events, runtime?.optimistic],
   );
   const timings = useMemo(() => projectActivityTimings(events), [events]);
-  const checkpointed = isCheckpointed(session, runtime);
+  const checkpointed = isSessionCheckpointed(session, runtime);
 
   useEffect(() => {
-    if (status === "running" && session) followSession(sessionId, toSessionState(session));
-    if (!runtimeStatus || runtimeStatus === "running") return;
+    void connectionCount;
+    if (status === "running" && eveSessionId) {
+      followSession(sessionId, { sessionId: eveSessionId, streamIndex: cursor });
+      return;
+    }
     if (checkpointed || status === "error") clearSessionRuntime(sessionId);
-  }, [checkpointed, runtimeStatus, session, sessionId, status]);
+  }, [checkpointed, connectionCount, cursor, eveSessionId, sessionId, status]);
 
   const prepareTurn = useConvexMutation(api.persistence.prepareTurn);
   const requestTurnStop = useConvexMutation(api.persistence.requestTurnStop);
@@ -127,15 +145,16 @@ export function useSession({ checkpointEvents, session, sessionId }: UseSessionO
   const visibleInput = availableInput(pendingInput);
   const sessionLimitReached = isSessionLimitRequest(pendingInput);
   const needsOption = Boolean(visibleInput?.options?.length && !visibleInput.allowFreeform);
-  const running = (runtimeStatus ?? status) === "running";
+  const running = isSessionGenerating(session, runtime);
   const stopping = runtimeStatus === "stopped" || status === "stopping";
   const active = running || stopping;
   const ended = Boolean(session?.eveSessionId && !session.continuationToken);
   const isGenerating = running;
   const error = sessionError(sessionLimitReached, runtime?.error, session);
   const canContinue = !sessionLimitReached && !ended;
-  const waitingForCheckpoint = Boolean(runtime?.events.length) && !checkpointed;
-  const canSend = canContinue && !waitingForCheckpoint;
+  const waitingForCheckpoint =
+    (runtimeStatus === "settled" || runtimeStatus === "stopped") && !checkpointed;
+  const canSend = canContinue && !running && !waitingForCheckpoint;
   const acceptsText = Boolean(session) && canSend && !needsOption;
   const disabled = active || !acceptsText;
 

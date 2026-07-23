@@ -15,7 +15,8 @@ type Connection = {
   readonly controller: AbortController;
   index: number;
   readonly session: ClientSession;
-  status: "ready" | "running" | "stopped";
+  sessionId?: string;
+  status: "disconnected" | "failed" | "running" | "settled" | "stopped";
   turnId?: string;
 };
 
@@ -43,6 +44,7 @@ function createConnection(state: SessionState | undefined, streamIndex: number):
     controller: new AbortController(),
     index: streamIndex,
     session: client.session({ ...state, streamIndex }),
+    sessionId: state?.sessionId,
     status: "running",
   };
 }
@@ -87,8 +89,18 @@ function optimisticMessage(
 
 function failConnection(sessionId: string, connection: Connection, message: string): void {
   if (connection.status === "stopped" || connection.controller.signal.aborted) return;
-  connection.status = "ready";
+  connection.status = "failed";
   updateRuntime(sessionId, connection, { error: message });
+}
+
+function disconnectConnection(sessionId: string, connection: Connection): void {
+  if (!connection.sessionId) {
+    failConnection(sessionId, connection, "Could not stream this conversation.");
+    return;
+  }
+  if (connection.status === "stopped" || connection.controller.signal.aborted) return;
+  connection.status = "disconnected";
+  updateRuntime(sessionId, connection, {});
 }
 
 function appendEvent(
@@ -116,22 +128,33 @@ async function consumeStream(
     for await (const event of stream) {
       appendEvent(sessionId, connection, event);
       if (event.type === "session.failed") {
-        failConnection(sessionId, connection, "This conversation stopped unexpectedly.");
-        return;
+        updateRuntime(sessionId, connection, {
+          error: "This conversation stopped unexpectedly.",
+        });
       }
-      if (isCurrentTurnBoundaryEvent(event)) break;
+      if (!isCurrentTurnBoundaryEvent(event)) continue;
+      if (connection.status === "stopped") return;
+      connection.status = "settled";
+      updateRuntime(sessionId, connection, {});
+      return;
     }
-    if (connection.status === "stopped") return;
-    connection.status = "ready";
-    updateRuntime(sessionId, connection, {});
+    disconnectConnection(sessionId, connection);
   } catch {
-    failConnection(sessionId, connection, "Could not stream this conversation.");
+    disconnectConnection(sessionId, connection);
   }
 }
 
+function getCancellationSession(connection: Connection): ClientSession | undefined {
+  if (connection.session.state.sessionId) return connection.session;
+  if (!connection.sessionId) return;
+  return client.session({ sessionId: connection.sessionId, streamIndex: connection.index });
+}
+
 async function cancelTurn(sessionId: string, connection: Connection): Promise<void> {
+  const session = getCancellationSession(connection);
+  if (!session) return;
   try {
-    await connection.session.cancel({ turnId: connection.turnId });
+    await session.cancel({ turnId: connection.turnId });
   } catch {
     updateRuntime(sessionId, connection, { error: "Could not stop this conversation." });
   }
@@ -161,6 +184,7 @@ async function runTurn(
       headers,
       signal: connection.controller.signal,
     });
+    connection.sessionId = stream.sessionId;
     if (connection.status === "stopped") {
       await cancelTurn(sessionId, connection);
       connection.controller.abort();
@@ -178,7 +202,7 @@ export function sendTurn(
   { beforeSend, sessionState }: SendTurnOptions = {},
 ): void {
   const current = getSessionRuntime(sessionId);
-  if (current && current.connection.status !== "ready") return;
+  if (current && current.connection.status !== "failed") return;
   const state = sessionState ?? current?.connection.session.state;
   const startIndex = Math.max(state?.streamIndex ?? 0, current?.connection.index ?? 0);
   const connection = createConnection(state, startIndex);
@@ -192,16 +216,26 @@ export function sendTurn(
 
 export function followSession(sessionId: string, state: SessionState): void {
   if (!state.sessionId) return;
-  if (getSessionRuntime(sessionId)) return;
-  const connection = createConnection(state, state.streamIndex);
+  const current = getSessionRuntime(sessionId);
+  if (
+    current &&
+    current.connection.status !== "disconnected" &&
+    current.connection.status !== "failed"
+  ) {
+    return;
+  }
+  const startIndex = Math.max(state.streamIndex, current?.connection.index ?? 0);
+  const connection = createConnection(state, startIndex);
+  current?.connection.controller.abort();
   setRuntime(sessionId, {
     connection,
-    events: [],
+    events: current?.events ?? [],
+    optimistic: current?.optimistic,
   });
   void consumeStream(
     sessionId,
     connection,
-    connection.session.stream({ signal: connection.controller.signal }),
+    connection.session.stream({ signal: connection.controller.signal, startIndex }),
   );
 }
 
@@ -217,7 +251,6 @@ export async function stopSession(sessionId: string, fallback?: SessionState): P
     events: current?.events ?? [],
   });
   connection.controller.abort();
-  if (!connection.session.state.sessionId) return;
   await cancelTurn(sessionId, connection);
 }
 
