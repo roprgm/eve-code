@@ -3,6 +3,7 @@ import { DELETE, defineChannel, GET, POST } from "eve/channels";
 import { z } from "zod";
 
 import { runDetachedWorkspaceCommand } from "@/agent/lib/bash";
+import { waitForPreview } from "@/agent/lib/preview";
 import { previewRunSchema } from "@/lib/preview";
 
 const route = "/eve/v1/sandbox/:sandboxId";
@@ -25,15 +26,6 @@ async function getSandbox(sandboxId: string, resume: boolean): Promise<Sandbox |
   const match = await getSandboxMatch(sandboxId);
   if (!match) return;
   return Sandbox.get({ name: match.name, resume });
-}
-
-async function waitForPreview(url: string): Promise<void> {
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const response = await fetch(url).catch(() => undefined);
-    if (response && response.status !== 502) return;
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-  throw new Error("Preview did not start.");
 }
 
 function getSandboxId(params: Readonly<Record<string, string>>): string | undefined {
@@ -61,10 +53,15 @@ export default defineChannel({
       const sandbox = await getSandbox(sandboxId, true);
       if (!sandbox) return Response.json({ error: "Sandbox not found." }, { status: 404 });
       await sandbox.update({ ports: [input.data.port] });
-      await runDetachedWorkspaceCommand(sandbox, input.data.command);
+      const command = await runDetachedWorkspaceCommand(sandbox, input.data.command);
       const url = sandbox.domain(input.data.port);
-      await waitForPreview(url);
-      return Response.json({ status: sandbox.status, url });
+      try {
+        await waitForPreview(url, input.data.port);
+        return Response.json({ status: sandbox.status, url });
+      } catch (error) {
+        await command.kill().catch(() => undefined);
+        throw error;
+      }
     }),
     DELETE(route, async (_request, { params }) => {
       const sandboxId = getSandboxId(params);

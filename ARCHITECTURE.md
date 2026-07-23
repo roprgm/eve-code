@@ -116,8 +116,9 @@ Eve's built-ins are the base. The local additions are deliberately narrow:
   protection, adding a bounded diff for complete replacements.
 - **`edit_file`** applies batched, exact, unique, non-overlapping replacements to one
   snapshot and stores a context-limited unified diff.
-- **`start_dev`** starts the model-selected server command, exposes its port, and
-  returns the sandbox ID and public URL.
+- **`start_dev`** starts the model-selected server command, exposes its port, verifies
+  the public route, and returns the sandbox ID and URL. It stops an unreachable
+  process so the agent can fix its host configuration and retry cleanly.
 - **Instructions** require reading before editing, finite Bash commands, `start_dev`
   for long-lived servers, and a build or test before claiming success.
 
