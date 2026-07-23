@@ -129,7 +129,7 @@ export function Message({ createdAt, isActive, message, timings }: MessageProps)
   return (
     <MessageScrollerItem messageId={message.id}>
       <article aria-label="eve-code" className="group/message pt-3 pb-5">
-        <div className="space-y-1">
+        <div>
           {parts.map((part, index) => (
             <AssistantPart
               isActive={isActive}

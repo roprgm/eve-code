@@ -159,10 +159,6 @@
   line-height: inherit;
 }
 
-.model-activity:has(+ .model-activity) {
-  margin-bottom: 0;
-}
-
 .reasoning-details {
   interpolate-size: allow-keywords;
 }

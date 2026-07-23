@@ -56,7 +56,7 @@ export function ModelActivity({
     return (
       <article
         aria-label={label}
-        className="model-activity flex items-baseline gap-2 text-muted-foreground"
+        className="flex items-baseline gap-2 text-muted-foreground"
         role="status"
       >
         {summary}
@@ -65,7 +65,7 @@ export function ModelActivity({
   }
 
   return (
-    <details className="model-activity reasoning-details group open:pb-1">
+    <details className="reasoning-details group open:pb-1">
       <summary className="flex cursor-pointer list-none items-baseline gap-2 rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
         {summary}
         <ChevronRight
