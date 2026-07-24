@@ -1,9 +1,34 @@
-import { Mic, Square } from "lucide-react";
+import { LoaderCircle, Mic, Square } from "lucide-react";
 
-import { useChatVoiceInput } from "./chat-voice-input";
+import { type ChatVoiceInputStatus, useChatVoiceInput } from "./chat-voice-input";
 
 const buttonClassName =
-  "inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0";
+  "inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-colors duration-150 outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0";
+
+type ButtonState = "idle" | "loading" | "recording";
+
+function buttonState(status: ChatVoiceInputStatus): ButtonState {
+  if (status === "recording") return "recording";
+  if (status === "busy") return "loading";
+  return "idle";
+}
+
+function buttonLabel(state: ButtonState, error: string): string {
+  if (state === "recording") return "Stop voice input";
+  if (state === "loading") return "Loading voice input";
+  if (error) return "Retry voice input";
+  return "Start voice input";
+}
+
+function ButtonIcon({ state }: { readonly state: ButtonState }) {
+  if (state === "loading") {
+    return <LoaderCircle aria-hidden="true" className="size-4 motion-safe:animate-spin" />;
+  }
+  if (state === "recording") {
+    return <Square aria-hidden="true" className="fill-current" />;
+  }
+  return <Mic aria-hidden="true" className="size-4" />;
+}
 
 export function ChatVoiceInputError() {
   const { error } = useChatVoiceInput();
@@ -15,37 +40,34 @@ export function ChatVoiceInputError() {
   );
 }
 
-export function ChatVoiceInputStartButton() {
-  const { disabled, error, start, status } = useChatVoiceInput();
-  if (status === "recording") return null;
-  const label = error ? "Retry voice input" : "Start voice input";
+export function ChatVoiceInputButton() {
+  const { disabled, error, start, status, stop } = useChatVoiceInput();
+  const state = buttonState(status);
+  const isLoading = state === "loading";
+  const className = state === "recording" ? `${buttonClassName} bg-accent` : buttonClassName;
+  const label = buttonLabel(state, error);
   const title = error || undefined;
+  const buttonDisabled = disabled || isLoading;
+
+  function onClick(): void {
+    if (state === "recording") {
+      void stop();
+      return;
+    }
+    void start();
+  }
+
   return (
     <button
+      aria-busy={isLoading}
       aria-label={label}
-      className={buttonClassName}
-      disabled={disabled || status === "busy"}
-      onClick={() => void start()}
+      className={className}
+      disabled={buttonDisabled}
+      onClick={onClick}
       title={title}
       type="button"
     >
-      <Mic aria-hidden="true" className="size-4" />
-    </button>
-  );
-}
-
-export function ChatVoiceInputStopButton() {
-  const { disabled, status, stop } = useChatVoiceInput();
-  if (status !== "recording") return null;
-  return (
-    <button
-      aria-label="Stop voice input"
-      className={`${buttonClassName} bg-accent`}
-      disabled={disabled}
-      onClick={() => void stop()}
-      type="button"
-    >
-      <Square aria-hidden="true" className="fill-current" />
+      <ButtonIcon state={state} />
     </button>
   );
 }

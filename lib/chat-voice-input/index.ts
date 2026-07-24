@@ -4,8 +4,7 @@ export {
   useChatVoiceInput,
 } from "./chat-voice-input";
 export {
+  ChatVoiceInputButton,
   ChatVoiceInputError,
-  ChatVoiceInputStartButton,
-  ChatVoiceInputStopButton,
 } from "./controls";
 export { ChatVoiceInputTimer, ChatVoiceInputWaveform } from "./waveform";

@@ -3,10 +3,9 @@ import { type FormEvent, type KeyboardEvent, useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
+  ChatVoiceInputButton,
   ChatVoiceInputError,
   ChatVoiceInputProvider,
-  ChatVoiceInputStartButton,
-  ChatVoiceInputStopButton,
   ChatVoiceInputTimer,
   ChatVoiceInputWaveform,
 } from "@/lib/chat-voice-input";
@@ -113,8 +112,7 @@ export function Composer({
             <ChatVoiceInputError />
             <ChatVoiceInputWaveform />
             <ChatVoiceInputTimer />
-            <ChatVoiceInputStartButton />
-            <ChatVoiceInputStopButton />
+            <ChatVoiceInputButton />
           </ChatVoiceInputProvider>
           <SubmitButton disabled={submitDisabled} isGenerating={isGenerating} onStop={onStop} />
         </div>
