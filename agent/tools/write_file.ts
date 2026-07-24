@@ -22,7 +22,6 @@ export default defineTool({
       const fileDiff = computeFileDiff(input.filePath, original, input.content);
       ctx.abortSignal.throwIfAborted();
       const result = writeFileOutputSchema.parse(await writeFile.execute(input, ctx));
-      if (!result.existed) return result;
       if (!fileDiff) return result;
       return { ...result, ...fileDiff };
     });

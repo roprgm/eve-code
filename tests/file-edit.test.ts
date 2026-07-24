@@ -62,7 +62,8 @@ describe("file edits", () => {
     expect(diff.split("\n").filter((line) => line.startsWith("@@"))).toHaveLength(2);
     expect(getFileDiffStats(diff)).toEqual({ additions: 2, deletions: 2 });
     expect(parsePatch(diff)[0]?.newFileName).toBe("src/style.css");
-    expect(computeFileDiff("new.ts", null, edited)).toBeUndefined();
+    const created = computeFileDiff("new.ts", null, "first\nsecond\n")?.diff ?? "";
+    expect(getFileDiffStats(created)).toEqual({ additions: 2, deletions: 0 });
     expect(computeFileDiff("same.ts", edited, edited)).toBeUndefined();
   });
 
@@ -108,8 +109,11 @@ describe("file edits", () => {
     expect(content).toBe("color: green;\n");
 
     content = null;
-    await expect(
-      writeFile.execute({ content: "new", filePath: "/workspace/new.ts" }, ctx),
-    ).resolves.toEqual({ existed: false, path: "/workspace/new.ts" });
+    const created = await writeFile.execute(
+      { content: "first\nsecond\n", filePath: "/workspace/new.ts" },
+      ctx,
+    );
+    expect(created).toMatchObject({ existed: false, path: "/workspace/new.ts" });
+    expect(getFileDiffStats(created.diff ?? "")).toEqual({ additions: 2, deletions: 0 });
   });
 });

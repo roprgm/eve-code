@@ -11,7 +11,7 @@ const editSchema = z.object({
 
 export default defineTool({
   description:
-    "Replace one or more exact, unique, non-overlapping text ranges in an existing file. Every oldText is matched against the original file, so use one call for multiple changes to the same file.",
+    "Replace one or more exact, unique, non-overlapping text ranges in an existing file. Copy each oldText verbatim from the latest file read. Every oldText is matched against the same original snapshot. If any edit fails, no changes are applied; read the file again and retry the call.",
   inputSchema: z.object({
     edits: z.array(editSchema).min(1).max(50),
     filePath: z.string().min(1).max(4_096),

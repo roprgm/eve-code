@@ -4,6 +4,7 @@ import type { EveMessage, EveMessagePart, SendTurnPayload, SessionState } from "
 import { useEffect, useMemo } from "react";
 
 import { api } from "@/convex/_generated/api";
+import { useComposerStore } from "@/lib/composer-store";
 import { projectActivityTimings, projectEveMessages, type StoredEveEvent } from "@/lib/eve-events";
 import { findPendingInput, isSessionLimitRequest } from "@/lib/pending-input";
 import {
@@ -112,6 +113,7 @@ export function isSessionGenerating(
 }
 
 export function useSession({ checkpointEvents, session, sessionId }: UseSessionOptions) {
+  const selectedModel = useComposerStore((state) => state.selectedModel);
   const connectionCount = useConvexConnectionState().connectionCount;
   const status = session?.status;
   const eveSessionId = session?.eveSessionId;
@@ -168,6 +170,7 @@ export function useSession({ checkpointEvents, session, sessionId }: UseSessionO
         ? () => recordInputResponses({ inputResponses, sessionId, streamIndex: cursor })
         : undefined,
       beforeSend: prepareTurn({ sessionId, streamIndex: cursor }),
+      modelId: selectedModel,
       sessionState: toSessionState(session),
     });
   }

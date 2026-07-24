@@ -102,6 +102,10 @@ remain in Eve's events instead of becoming parallel Convex records. Token usage 
 recorded for future product decisions but does not enforce a product quota; Eve's
 per-session safety limits still apply.
 
+The selected model is transient browser state sent with each turn. The Eve channel
+validates it into current request attributes, and the agent resolves it at turn scope
+with the shared default as fallback. Convex does not persist model selection.
+
 ## Coding harness
 
 Eve's built-ins are the base. The local additions are deliberately narrow:
@@ -113,7 +117,7 @@ Eve's built-ins are the base. The local additions are deliberately narrow:
 - **`clone_repository`** validates a public GitHub repository, clones it into the
   current workspace, and returns its root entries in the repository activity.
 - **`write_file`** preserves Eve's create/overwrite contract and read-before-write
-  protection, adding a bounded diff for complete replacements.
+  protection, adding a bounded diff for new files and complete replacements.
 - **`edit_file`** applies batched, exact, unique, non-overlapping replacements to one
   snapshot and stores a context-limited unified diff.
 - **`start_dev`** starts the model-selected server command, exposes its port, verifies
@@ -174,8 +178,9 @@ Here `sessionId` is Eve's durable session ID, not the app's public session ID.
   Its header shows the selected GitHub repository when the workspace has one.
   The read-only workspace contains breadcrumbs, a keyboard-accessible tree, and a
   highlighted source viewer. File tool activity can open the corresponding file.
-- **Composer** composes text input, the self-contained Chat Voice Input package, and
-  submit as independent controls. Audio is never recorded or persisted.
+- **Composer** composes text input, a turn-scoped model selector, the self-contained
+  Chat Voice Input package, and submit as independent controls. Audio is never
+  recorded or persisted.
 - **Activity** projects Eve events into reasoning, tool calls, live Bash output,
   file diffs, and elapsed time.
 - **Session management** includes responsive sidebar navigation, rename, and delete.

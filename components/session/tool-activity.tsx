@@ -103,11 +103,16 @@ function isSettled(part: EveDynamicToolPart): boolean {
   );
 }
 
+function DeletedLines({ count }: { readonly count: number }) {
+  if (count === 0) return null;
+  return <span className="text-destructive">-{count}</span>;
+}
+
 function FileDiffStats({ diff }: { readonly diff: FileDiff }) {
   const { additions, deletions } = useMemo(() => getFileDiffStats(diff.diff), [diff.diff]);
   return (
     <span className="flex shrink-0 gap-1 font-mono text-sm">
-      <span className="text-destructive">-{deletions}</span>
+      <DeletedLines count={deletions} />
       <span className="text-success">+{additions}</span>
     </span>
   );

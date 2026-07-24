@@ -39,6 +39,7 @@ import {
   type StoredSession,
 } from "@/components/session/use-session";
 import { createPublicId, SESSION_ID_HEADER } from "@/lib/identity";
+import { DEFAULT_MODEL_ID, MODEL_HEADER, MODEL_OPTIONS } from "@/lib/models";
 import {
   clearSessionRuntime,
   followSession,
@@ -181,6 +182,7 @@ it("shows the optimistic message, then stops locally and cancels Eve", async () 
 
   sendTurn(sessionId, { message: "Keep working" });
   expect(sent.input?.headers?.[SESSION_ID_HEADER]).toBe(sessionId);
+  expect(sent.input?.headers?.[MODEL_HEADER]).toBe(DEFAULT_MODEL_ID);
   await vi.waitFor(() => expect(getSessionRuntime(sessionId)?.connection.turnId).toBe("turn-1"));
 
   const stopping = stopSession(sessionId);
@@ -202,9 +204,11 @@ it("omits the app session header when Eve already has a session", async () => {
     }),
   );
 
-  sendTurn(sessionId, { message: "Continue" });
+  const selectedModel = MODEL_OPTIONS[1].value;
+  sendTurn(sessionId, { message: "Continue" }, { modelId: selectedModel });
   await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
   expect(send.mock.calls[0]?.[0].headers?.[SESSION_ID_HEADER]).toBeUndefined();
+  expect(send.mock.calls[0]?.[0].headers?.[MODEL_HEADER]).toBe(selectedModel);
 });
 
 it("keeps a failed cancellation recoverable", async () => {

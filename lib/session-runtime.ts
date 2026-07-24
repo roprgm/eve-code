@@ -10,6 +10,7 @@ import { create } from "zustand";
 
 import type { OptimisticTurn, StoredEveEvent } from "@/lib/eve-events";
 import { SESSION_ID_HEADER } from "@/lib/identity";
+import { DEFAULT_MODEL_ID, MODEL_HEADER, type ModelId } from "@/lib/models";
 
 type Connection = {
   readonly controller: AbortController;
@@ -35,6 +36,7 @@ type RuntimeStore = {
 type SendTurnOptions = {
   readonly afterSend?: () => Promise<unknown>;
   readonly beforeSend?: Promise<unknown>;
+  readonly modelId?: ModelId;
   readonly sessionState?: SessionState;
 };
 
@@ -171,6 +173,7 @@ async function runTurn(
   sessionId: string,
   connection: Connection,
   input: SendTurnPayload,
+  modelId: ModelId,
   afterSend?: () => Promise<unknown>,
   beforeSend?: Promise<unknown>,
 ): Promise<void> {
@@ -184,9 +187,8 @@ async function runTurn(
   }
 
   try {
-    const headers = connection.session.state.sessionId
-      ? input.headers
-      : { ...input.headers, [SESSION_ID_HEADER]: sessionId };
+    const headers: Record<string, string> = { ...input.headers, [MODEL_HEADER]: modelId };
+    if (!connection.session.state.sessionId) headers[SESSION_ID_HEADER] = sessionId;
     const stream = await connection.session.send({
       ...input,
       headers,
@@ -214,7 +216,7 @@ async function runTurn(
 export function sendTurn(
   sessionId: string,
   input: SendTurnPayload,
-  { afterSend, beforeSend, sessionState }: SendTurnOptions = {},
+  { afterSend, beforeSend, modelId = DEFAULT_MODEL_ID, sessionState }: SendTurnOptions = {},
 ): void {
   const current = getSessionRuntime(sessionId);
   if (current && current.connection.status !== "failed") return;
@@ -226,7 +228,7 @@ export function sendTurn(
     events: current?.events ?? [],
     optimistic: optimisticTurn(input, startIndex),
   });
-  void runTurn(sessionId, connection, input, afterSend, beforeSend);
+  void runTurn(sessionId, connection, input, modelId, afterSend, beforeSend);
 }
 
 export function followSession(sessionId: string, state: SessionState): void {
