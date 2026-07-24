@@ -43,10 +43,15 @@ named export.
 ## Server
 
 The browser expects `POST /eve/v1/transcription` to return a short-lived AI Gateway
-token. This repository registers that route with the server-only helper:
+token. Pass application-specific configuration to the server-only helper:
 
 ```ts
 import { createTranscriptionTokenResponse } from "@/lib/chat-voice-input/server";
+
+return createTranscriptionTokenResponse({
+  apiKey: process.env.TRANSCRIPTION_AI_GATEWAY_API_KEY,
+});
 ```
 
-Set `TRANSCRIPTION_AI_GATEWAY_API_KEY` to enable token creation.
+When `apiKey` is omitted, the AI Gateway provider uses its standard authentication:
+`AI_GATEWAY_API_KEY`, then Vercel OIDC.
