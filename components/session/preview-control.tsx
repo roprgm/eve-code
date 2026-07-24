@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Download, ExternalLink, LoaderCircle, Play, Power } from "lucide-react";
+import { ChevronDown, ExternalLink, LoaderCircle, Play, Power } from "lucide-react";
+import type { ReactNode } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { getMenuAnchorStyle, MenuContent, MenuItem } from "@/components/ui/menu";
 import type { Preview } from "@/lib/preview";
-import { getWorkspaceUrl } from "@/lib/workspace";
 
 const sandboxSchema = z.object({
   status: z.enum([
@@ -94,13 +94,12 @@ function PreviewStopAction({
   );
 }
 
-function PreviewControl({
+function PreviewButtons({
   action,
+  actions,
   disabled,
-  isDownloadDisabled,
   label,
   menuId,
-  onDownload,
   onPreview,
   onStop,
   preview,
@@ -108,11 +107,10 @@ function PreviewControl({
   title,
 }: {
   readonly action: PreviewAction;
+  readonly actions?: ReactNode;
   readonly disabled: boolean;
-  readonly isDownloadDisabled: boolean;
   readonly label: string;
   readonly menuId: string;
-  readonly onDownload: () => void;
   readonly onPreview: () => void;
   readonly onStop?: () => void;
   readonly preview: Preview;
@@ -157,15 +155,7 @@ function PreviewControl({
           </span>
         </div>
         <div className="mt-1 border-t pt-1">
-          <MenuItem
-            className="text-sm"
-            disabled={isDownloadDisabled}
-            onClick={onDownload}
-            popoverTarget={menuId}
-          >
-            <Download aria-hidden="true" className="size-3.5" />
-            Download
-          </MenuItem>
+          {actions}
           <PreviewStopAction menuId={menuId} onStop={onStop} />
         </div>
       </MenuContent>
@@ -202,7 +192,15 @@ function getControlState(status: VisibleStatus, hasError: boolean): ControlState
   return { action: "run", disabled: false, label: "Preview" };
 }
 
-export function SandboxControl({ preview, sessionId }: { preview: Preview; sessionId?: string }) {
+export function PreviewControl({
+  actions,
+  menuId,
+  preview,
+}: {
+  readonly actions?: ReactNode;
+  readonly menuId: string;
+  readonly preview: Preview;
+}) {
   const queryClient = useQueryClient();
   const queryKey = ["sandbox", preview.sandboxId, preview.port] as const;
   const sandbox = useQuery({
@@ -229,11 +227,6 @@ export function SandboxControl({ preview, sessionId }: { preview: Preview; sessi
     action.mutate("stop");
   }
 
-  function onDownload(): void {
-    if (!sessionId) return;
-    window.location.assign(`${getWorkspaceUrl(sessionId)}/download`);
-  }
-
   function onPreview(): void {
     if (control.action === "open") {
       openPreviewTab(url);
@@ -251,16 +244,14 @@ export function SandboxControl({ preview, sessionId }: { preview: Preview; sessi
   }
 
   const stopPreview = status === "running" ? onStop : undefined;
-  const isDownloadDisabled = !sessionId;
 
   return (
-    <PreviewControl
+    <PreviewButtons
       action={control.action}
+      actions={actions}
       disabled={control.disabled}
-      isDownloadDisabled={isDownloadDisabled}
       label={control.label}
-      menuId={`sandbox-info-${preview.sandboxId}`}
-      onDownload={onDownload}
+      menuId={menuId}
       onPreview={onPreview}
       onStop={stopPreview}
       preview={preview}

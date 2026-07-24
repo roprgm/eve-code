@@ -15,8 +15,7 @@ import { type MouseEvent, type ReactNode, useMemo } from "react";
 
 import Diff from "@/components/code/diff";
 import { CommandLogs } from "@/components/session/command-logs";
-import { ModelActivity } from "@/components/session/model-activity";
-import { useElapsed } from "@/components/session/use-elapsed";
+import { ModelActivity, useElapsed } from "@/components/session/model-activity";
 import { CodeBlock } from "@/components/ui/code-block";
 import { useOpenWorkspaceFile } from "@/components/workspace/workspace-navigation";
 import type { ActivityTiming } from "@/lib/eve-events";

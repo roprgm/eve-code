@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { href, Outlet, useMatch, useNavigate } from "react-router";
 
-import { SessionSidebar } from "@/components/session/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 import { useComposerStore } from "@/lib/composer-store";
 
 function useMediaQuery(query: string): boolean {
@@ -44,7 +44,7 @@ export function App() {
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background text-foreground">
-      <SessionSidebar
+      <AppSidebar
         isCollapsed={isSidebarCollapsed && !isMobile}
         isOpen={isSidebarOpen}
         onClose={() => setSidebarOpen(false)}

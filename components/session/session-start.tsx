@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, FilePlus2, GitFork, type LucideIcon } from "lucide-react";
 import { type InputEvent, type PropsWithChildren, type SubmitEvent, useRef, useState } from "react";
 
-import { Composer } from "@/components/ai/composer";
+import { Composer } from "@/components/chat/composer";
 import { Button } from "@/components/ui/button";
 import { type GitRepository, parseGitHubRepository } from "@/lib/github";
 

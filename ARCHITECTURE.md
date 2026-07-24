@@ -226,11 +226,17 @@ lib/            lowest-level reusable modules and extractable feature packages
   chat-voice-input/
                 self-contained voice input package
 components/
+  app-header.tsx
+                shared route header and optional workspace/preview actions
+  app-sidebar.tsx
+                responsive application navigation and session management
+  session-list-item.tsx
+                session navigation row, rename, and row actions
   ui/           generic visual primitives
-  ai/           reusable chat layout, actions, scrolling, and composition
-  code/         Pierre-backed source and diff facades
-  session/      conversation, activity, navigation, and preview control
-  workspace/    file navigation, tree, queries, and panel
+  chat/         reusable chat layout, actions, scrolling, and composition
+  code/         lazy Pierre-backed diff facade
+  session/      session lifecycle, messages, activity, and preview control
+  workspace/    file navigation, tree, queries, source viewer, and panel
 app/            routes, pages, providers, and top-level wiring
 tests/          pure contract and runtime tests
 vercel.json     Vite web service plus Eve service

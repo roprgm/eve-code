@@ -1,10 +1,10 @@
 import { Activity, lazy, Suspense, useCallback, useState } from "react";
 
-import { Composer } from "@/components/ai/composer";
-import { Thread, ThreadMessage } from "@/components/ai/thread";
+import { AppHeader } from "@/components/app-header";
+import { Composer } from "@/components/chat/composer";
+import { Thread, ThreadMessage } from "@/components/chat/thread";
 import { CommandLogsProvider } from "@/components/session/command-logs";
-import { Conversation } from "@/components/session/conversation";
-import { PageHeader } from "@/components/session/page-header";
+import { SessionMessages } from "@/components/session/messages";
 import { type StoredSession, useSession } from "@/components/session/use-session";
 import { Alert } from "@/components/ui/alert";
 import {
@@ -93,7 +93,7 @@ export function SessionView({ checkpointEvents, session, sessionId, title }: Ses
     <WorkspaceNavigationProvider openFile={openWorkspaceFile}>
       <CommandLogsProvider sessionId={session?.eveSessionId ?? ""}>
         <main className="flex min-w-0 flex-1 flex-col bg-background">
-          <PageHeader
+          <AppHeader
             branch={session?.branch}
             isWorkspaceOpen={isWorkspaceOpen}
             onToggleWorkspace={toggleWorkspace}
@@ -105,7 +105,7 @@ export function SessionView({ checkpointEvents, session, sessionId, title }: Ses
           <div className="flex min-h-0 flex-1">
             <section className={conversationClass}>
               <Thread>
-                <Conversation view={view} />
+                <SessionMessages view={view} />
                 {hasNotices && (
                   <ThreadMessage>
                     {view.error && (

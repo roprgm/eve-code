@@ -28,8 +28,8 @@ export function InputRequest({ disabled, onSelect, request, response }: InputReq
         <div className="mt-3 flex w-full flex-wrap gap-2">
           {options.map((option) => {
             const selected = response?.optionId === option.id;
-            let variant: "default" | "outline" = "outline";
-            if (selected || (!answered && option.style === "primary")) variant = "default";
+            const variant =
+              selected || (!answered && option.style === "primary") ? "default" : "outline";
             return (
               <Button
                 aria-pressed={selected}

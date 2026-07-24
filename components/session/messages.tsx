@@ -1,14 +1,18 @@
 import type { EveMessage, EveMessagePart } from "eve/client";
 import { Brain } from "lucide-react";
+import { Streamdown } from "streamdown";
 
-import { ActionBar } from "@/components/ai/action-bar";
-import { AssistantMessage, UserMessage } from "@/components/ai/message";
+import { AssistantMessage, MessageActions, UserMessage } from "@/components/chat/message";
+import { ThreadMessage } from "@/components/chat/thread";
 import { InputRequest } from "@/components/session/input-request";
-import MarkdownMessage from "@/components/session/markdown-message";
-import { ModelActivity } from "@/components/session/model-activity";
+import { ModelActivity, useElapsed } from "@/components/session/model-activity";
 import { ToolActivity } from "@/components/session/tool-activity";
-import { useElapsed } from "@/components/session/use-elapsed";
+import type { useSession } from "@/components/session/use-session";
 import { type ActivityTiming, getReasoningTimingKey, getToolTimingKey } from "@/lib/eve-events";
+
+import "streamdown/styles.css";
+
+const messageControls = { table: false } as const;
 
 type Timings = ReadonlyMap<string, ActivityTiming>;
 
@@ -22,9 +26,22 @@ function isRenderedPart(part: EveMessagePart): boolean {
 
 function getPartKey(part: EveMessagePart, index: number): string {
   if (part.type === "dynamic-tool") return part.toolCallId;
-  const stepIndex =
-    part.type === "text" || part.type === "reasoning" ? (part.stepIndex ?? index) : index;
-  return `${part.type}:${stepIndex}`;
+  if (part.type === "text" || part.type === "reasoning") {
+    return `${part.type}:${part.stepIndex ?? index}`;
+  }
+  return `${part.type}:${index}`;
+}
+
+function MarkdownMessage({ isAnimating, text }: { isAnimating: boolean; text: string }) {
+  return (
+    <Streamdown
+      className="model-response my-1 wrap-anywhere space-y-2 first:mt-0 last:mb-0 [&_li]:py-0 [&_p]:leading-chat"
+      controls={messageControls}
+      isAnimating={isAnimating}
+    >
+      {text}
+    </Streamdown>
+  );
 }
 
 type ThinkingActivityProps = {
@@ -91,7 +108,7 @@ function AssistantPart({
   return null;
 }
 
-type MessageProps = {
+type SessionMessageProps = {
   readonly canAnswer: boolean;
   readonly createdAt?: number;
   readonly isActive: boolean;
@@ -101,7 +118,7 @@ type MessageProps = {
   readonly timings: Timings;
 };
 
-export function Message({
+function SessionMessage({
   canAnswer,
   createdAt,
   isActive,
@@ -109,14 +126,17 @@ export function Message({
   onAnswer,
   pendingRequestId,
   timings,
-}: MessageProps) {
+}: SessionMessageProps) {
   const textParts = message.parts.filter((part) => part.type === "text");
   const text = textParts.map((part) => part.text).join("\n\n");
 
   if (message.role === "user") {
     if (!text.trim()) return null;
     return (
-      <UserMessage actions={<ActionBar createdAt={createdAt} text={text} />} messageId={message.id}>
+      <UserMessage
+        actions={<MessageActions createdAt={createdAt} text={text} />}
+        messageId={message.id}
+      >
         {text}
       </UserMessage>
     );
@@ -125,7 +145,7 @@ export function Message({
   const parts = message.parts.filter(isRenderedPart);
   if (parts.length === 0) return null;
   const actions = text ? (
-    <ActionBar
+    <MessageActions
       aria-hidden={isActive}
       className={isActive ? "invisible" : undefined}
       createdAt={createdAt}
@@ -148,5 +168,31 @@ export function Message({
         />
       ))}
     </AssistantMessage>
+  );
+}
+
+export function SessionMessages({ view }: { readonly view: ReturnType<typeof useSession> }) {
+  return (
+    <>
+      {view.messages.map((message) => (
+        <SessionMessage
+          canAnswer={!view.isGenerating && !view.isStopping}
+          createdAt={message.createdAt}
+          isActive={view.isGenerating && message.metadata?.status === "streaming"}
+          key={message.id}
+          message={message}
+          onAnswer={view.answerQuestion}
+          pendingRequestId={view.pendingInput?.requestId}
+          timings={view.timings}
+        />
+      ))}
+      {view.activityLabel && (
+        <ThreadMessage>
+          <div className="pt-3 pb-8">
+            <ModelActivity icon={Brain} isAnimated label={view.activityLabel} />
+          </div>
+        </ThreadMessage>
+      )}
+    </>
   );
 }

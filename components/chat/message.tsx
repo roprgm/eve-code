@@ -1,20 +1,27 @@
 import { Check, Copy } from "lucide-react";
-import { type ComponentProps, useEffect, useState } from "react";
+import { type ComponentProps, type ReactNode, useEffect, useState } from "react";
 
+import { ThreadMessage } from "@/components/chat/thread";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+type MessageProps = {
+  readonly actions?: ReactNode;
+  readonly children: ReactNode;
+  readonly messageId: string;
+};
 
 const timeFormatter = new Intl.DateTimeFormat(undefined, {
   hour: "numeric",
   minute: "2-digit",
 });
 
-type ActionBarProps = ComponentProps<"div"> & {
+type MessageActionsProps = ComponentProps<"div"> & {
   readonly createdAt?: number;
   readonly text: string;
 };
 
-export function ActionBar({ className, createdAt, text, ...props }: ActionBarProps) {
+export function MessageActions({ className, createdAt, text, ...props }: MessageActionsProps) {
   const [isCopied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -53,5 +60,36 @@ export function ActionBar({ className, createdAt, text, ...props }: ActionBarPro
         {!isCopied && <Copy aria-hidden="true" />}
       </Button>
     </div>
+  );
+}
+
+export function UserMessage({ actions, children, messageId }: MessageProps) {
+  return (
+    <ThreadMessage messageId={messageId}>
+      <article
+        aria-label="You"
+        className="group/message relative flex flex-col items-end pt-3 pb-10"
+      >
+        <div className="max-w-[85%] wrap-anywhere whitespace-pre-wrap rounded-xl bg-muted px-4 py-2 leading-chat sm:max-w-[75%]">
+          {children}
+        </div>
+        {actions && <div className="absolute right-0 bottom-3">{actions}</div>}
+      </article>
+    </ThreadMessage>
+  );
+}
+
+export function AssistantMessage({ actions, children, messageId }: MessageProps) {
+  const className = actions
+    ? "group/message relative pt-3 pb-12"
+    : "group/message relative pt-3 pb-5";
+
+  return (
+    <ThreadMessage messageId={messageId}>
+      <article aria-label="Assistant" className={className}>
+        <div>{children}</div>
+        {actions && <div className="absolute bottom-5 left-0">{actions}</div>}
+      </article>
+    </ThreadMessage>
   );
 }

@@ -1,21 +1,33 @@
+import { File } from "@pierre/diffs/react";
 import { FileTree } from "@pierre/trees/react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import type { z } from "zod";
 
-import FileViewer from "@/components/code/file-viewer";
 import { useWorkspaceTree } from "@/components/workspace/use-workspace-tree";
 import { WorkspaceBrowser } from "@/components/workspace/workspace-browser";
 import type { WorkspaceFileRequest } from "@/components/workspace/workspace-navigation";
 import { getWorkspaceUrl, workspaceFileSchema, workspacePathsSchema } from "@/lib/workspace";
 
 const emptyPaths: string[] = [];
+const fileOptions = {
+  disableFileHeader: true,
+  theme: "pierre-dark-soft",
+  themeType: "dark",
+  unsafeCSS: "pre { --diffs-bg: var(--background) !important; }",
+} as const;
+
 type WorkspaceFile = z.infer<typeof workspaceFileSchema>;
 
 async function getWorkspace<T>(url: string, schema: z.ZodType<T>): Promise<T> {
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error("Could not load the workspace.");
   return schema.parse(await response.json());
+}
+
+function FileViewer({ contents, path }: { readonly contents: string; readonly path: string }) {
+  const file = { contents, name: path };
+  return <File className="app-scrollbar workspace-file" file={file} options={fileOptions} />;
 }
 
 function PanelMessage({ children }: { readonly children: ReactNode }) {
