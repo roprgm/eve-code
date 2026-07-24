@@ -80,13 +80,9 @@ export function UserMessage({ actions, children, messageId }: MessageProps) {
 }
 
 export function AssistantMessage({ actions, children, messageId }: MessageProps) {
-  const className = actions
-    ? "group/message relative pt-3 pb-12"
-    : "group/message relative pt-3 pb-5";
-
   return (
     <ThreadMessage messageId={messageId}>
-      <article aria-label="Assistant" className={className}>
+      <article aria-label="Assistant" className="group/message relative pt-3 pb-12">
         <div>{children}</div>
         {actions && <div className="absolute bottom-5 left-0">{actions}</div>}
       </article>
