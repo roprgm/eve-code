@@ -2,7 +2,7 @@ import { createContext, type ReactNode, useContext, useEffect, useRef, useState 
 
 import { startTranscription, type Transcription } from "./transcription";
 
-export type ChatVoiceInputStatus = "busy" | "error" | "idle" | "recording";
+export type ChatVoiceInputStatus = "idle" | "loading" | "recording";
 
 type ChatVoiceInputContextValue = {
   readonly disabled: boolean;
@@ -21,7 +21,7 @@ type ChatVoiceInputProviderProps = {
   readonly value: string;
 };
 
-type Recording = Transcription | "busy" | "error" | undefined;
+type Recording = Transcription | "error" | "loading" | undefined;
 
 const ChatVoiceInputContext = createContext<ChatVoiceInputContextValue | undefined>(undefined);
 const unavailableMessage = "Voice input is unavailable.";
@@ -32,7 +32,8 @@ function message(prefix: string, transcript: string): string {
 
 function recordingStatus(recording: Recording): ChatVoiceInputStatus {
   if (typeof recording === "object") return "recording";
-  return recording ?? "idle";
+  if (recording === "loading") return "loading";
+  return "idle";
 }
 
 export function useChatVoiceInput(): ChatVoiceInputContextValue {
@@ -81,7 +82,7 @@ export function ChatVoiceInputProvider({
     controller.current = activeController;
     prefix.current = value.trim();
     transcript.current = "";
-    setRecording("busy");
+    setRecording("loading");
 
     try {
       const live = await startTranscription((delta) => {
@@ -101,7 +102,7 @@ export function ChatVoiceInputProvider({
     const live = recording;
     const activeController = controller.current;
     if (!activeController) return;
-    setRecording("busy");
+    setRecording("loading");
 
     try {
       live.stop();

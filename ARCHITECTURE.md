@@ -37,9 +37,6 @@ Eve service ──────────────────────�
 Convex (sessions, turns) ──▶ subscribed browser cache
 
 Browser ── workspace and preview HTTP ──▶ Eve channels ──▶ same sandbox
-
-Browser ── short-lived transcription token ──▶ Eve channel ──▶ AI Gateway
-   └────────────────── live PCM over WebSocket ─────────────▶
 ```
 
 The HTTP channels are narrow product adapters. Eve still creates the session and
@@ -51,7 +48,7 @@ sandbox, runs the agent, serializes turns, and owns the durable event stream.
   session-bound sandbox.
 - **Convex** owns the durable product index and compact completed-turn checkpoints.
 - **The browser runtime** owns only in-flight events, optimistic input, view state,
-  microphone capture, live transcripts, and caches derived from Eve or Convex.
+  and caches derived from Eve or Convex.
 - **Eve channels** expose narrow browser-to-sandbox operations that Eve does not
   provide directly. They do not become a second application backend.
 - **Git metadata** describes the repository currently found in a session workspace.
@@ -156,14 +153,13 @@ tracked in [docs/eve-improvements.md](./docs/eve-improvements.md).
   generated directories, caps the tree at 10,000 paths, and refuses binary or text
   files over 200 KiB.
 
-The current browser-facing product channel routes are:
+The current workspace routes are:
 
 ```text
 GET /eve/v1/workspace/:sessionId
 GET /eve/v1/workspace/:sessionId/file?path=...
 GET /eve/v1/workspace/:sessionId/command
 GET /eve/v1/workspace/:sessionId/download
-POST /eve/v1/transcription
 ```
 
 Here `sessionId` is Eve's durable session ID, not the app's public session ID.
@@ -178,12 +174,8 @@ Here `sessionId` is Eve's durable session ID, not the app's public session ID.
   Its header shows the selected GitHub repository when the workspace has one.
   The read-only workspace contains breadcrumbs, a keyboard-accessible tree, and a
   highlighted source viewer. File tool activity can open the corresponding file.
-- **Composer** composes text input, headless voice primitives, and submit as
-  independent controls. `lib/chat-voice-input/` owns one provider for the recording
-  lifecycle plus hook-driven button, error, waveform, and timer components. It also
-  owns the microphone PCM worklet, browser transcription adapter, and token response.
-  The Eve channel only registers that response at the product route. Its dedicated
-  Gateway key keeps Eve on OIDC; audio is never recorded or persisted.
+- **Composer** composes text input, the self-contained Chat Voice Input package, and
+  submit as independent controls. Audio is never recorded or persisted.
 - **Activity** projects Eve events into reasoning, tool calls, live Bash output,
   file diffs, and elapsed time.
 - **Session management** includes responsive sidebar navigation, rename, and delete.
@@ -232,7 +224,7 @@ agent/          Eve agent and its server-side adapters
 convex/         schema, session operations, and checkpoint persistence
 lib/            lowest-level reusable modules and extractable feature packages
   chat-voice-input/
-                voice UI, microphone worklet, transcription, and server adapter
+                self-contained voice input package
 components/
   ui/           generic visual primitives
   composer/     message input, optional controls, and submit composition
@@ -273,7 +265,6 @@ Layer rules:
 The runtime remains intentionally short:
 
 - `eve`, `@vercel/sandbox`, and `@vercel/oidc` for the agent and sandbox
-- `ai` and `@ai-sdk/gateway` for live transcription and short-lived browser tokens
 - `convex`, `@convex-dev/react-query`, and TanStack Query for durable reactive data
 - React 19, React Router, and Zustand for the browser runtime
 - Tailwind 4, `@shadcn/react`, Lucide, and Streamdown for the interface

@@ -5,22 +5,14 @@ import { type ChatVoiceInputStatus, useChatVoiceInput } from "./chat-voice-input
 const buttonClassName =
   "inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-colors duration-150 outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0";
 
-type ButtonState = "idle" | "loading" | "recording";
-
-function buttonState(status: ChatVoiceInputStatus): ButtonState {
-  if (status === "recording") return "recording";
-  if (status === "busy") return "loading";
-  return "idle";
-}
-
-function buttonLabel(state: ButtonState, error: string): string {
+function buttonLabel(state: ChatVoiceInputStatus, error: string): string {
   if (state === "recording") return "Stop voice input";
   if (state === "loading") return "Loading voice input";
   if (error) return "Retry voice input";
   return "Start voice input";
 }
 
-function ButtonIcon({ state }: { readonly state: ButtonState }) {
+function ButtonIcon({ state }: { readonly state: ChatVoiceInputStatus }) {
   if (state === "loading") {
     return <LoaderCircle aria-hidden="true" className="size-4 motion-safe:animate-spin" />;
   }
@@ -42,15 +34,14 @@ export function ChatVoiceInputError() {
 
 export function ChatVoiceInputButton() {
   const { disabled, error, start, status, stop } = useChatVoiceInput();
-  const state = buttonState(status);
-  const isLoading = state === "loading";
-  const className = state === "recording" ? `${buttonClassName} bg-accent` : buttonClassName;
-  const label = buttonLabel(state, error);
+  const isLoading = status === "loading";
+  const className = status === "recording" ? `${buttonClassName} bg-accent` : buttonClassName;
+  const label = buttonLabel(status, error);
   const title = error || undefined;
   const buttonDisabled = disabled || isLoading;
 
   function onClick(): void {
-    if (state === "recording") {
+    if (status === "recording") {
       void stop();
       return;
     }
@@ -67,7 +58,7 @@ export function ChatVoiceInputButton() {
       title={title}
       type="button"
     >
-      <ButtonIcon state={state} />
+      <ButtonIcon state={status} />
     </button>
   );
 }
