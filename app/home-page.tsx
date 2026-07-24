@@ -1,7 +1,7 @@
 import { useConvexMutation } from "@convex-dev/react-query";
 import { href, useNavigate } from "react-router";
 
-import { PageHeader } from "@/components/session/page-header";
+import { AppHeader } from "@/components/app-header";
 import { SessionStart } from "@/components/session/session-start";
 import { api } from "@/convex/_generated/api";
 import type { GitRepository } from "@/lib/github";
@@ -37,7 +37,7 @@ export function HomePage() {
 
   return (
     <main className="flex min-w-0 flex-1 flex-col bg-background">
-      <PageHeader title="New session" />
+      <AppHeader title="New session" />
       <SessionStart onImport={importRepository} onStart={startSession} />
     </main>
   );

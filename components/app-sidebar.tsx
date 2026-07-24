@@ -1,15 +1,75 @@
-import { useConvexPaginatedQuery } from "@convex-dev/react-query";
+import { useConvexMutation, useConvexPaginatedQuery } from "@convex-dev/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { AlignLeft, PanelLeft, SquarePen, X } from "lucide-react";
 import { useState } from "react";
 import { href, useNavigate } from "react-router";
 
-import { DeleteSessionDialog } from "@/components/session/delete-dialog";
-import { SessionSidebarItem, type SessionSummary } from "@/components/session/sidebar-item";
+import { SessionListItem, type SessionSummary } from "@/components/session-list-item";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
+import { clearSessionRuntime } from "@/lib/session-runtime";
 import { cn } from "@/lib/utils";
 
-type SessionSidebarProps = {
+type DeleteSessionDialogProps = {
+  readonly onClose: () => void;
+  readonly onDeleted: (sessionId: string) => void;
+  readonly target?: SessionSummary;
+};
+
+function DeleteSessionDialog({ onClose, onDeleted, target }: DeleteSessionDialogProps) {
+  const removeSession = useMutation({ mutationFn: useConvexMutation(api.sessions.remove) });
+
+  function remove(): void {
+    if (!target) return;
+    removeSession.mutate(
+      { sessionId: target.sessionId },
+      {
+        onSuccess: () => {
+          clearSessionRuntime(target.sessionId);
+          onDeleted(target.sessionId);
+          document.querySelector<HTMLDialogElement>("#delete-session-dialog")?.close();
+        },
+      },
+    );
+  }
+
+  return (
+    <dialog
+      aria-describedby="delete-session-description"
+      aria-labelledby="delete-session-title"
+      className="m-auto w-[min(28rem,calc(100%-2rem))] rounded-xl border bg-card p-5 text-card-foreground shadow-2xl backdrop:bg-black/70"
+      id="delete-session-dialog"
+      onCancel={(event) => removeSession.isPending && event.preventDefault()}
+      onClose={() => {
+        removeSession.reset();
+        onClose();
+      }}
+    >
+      <h2 className="font-medium" id="delete-session-title">
+        Delete session permanently?
+      </h2>
+      <p className="mt-2 text-muted-foreground" id="delete-session-description">
+        “{target?.name}” and its history cannot be recovered.
+      </p>
+      {removeSession.isError && (
+        <Alert className="mt-4" variant="destructive">
+          Could not delete this session.
+        </Alert>
+      )}
+      <form className="mt-5 flex justify-end gap-2" method="dialog">
+        <Button disabled={removeSession.isPending} type="submit" variant="outline">
+          Cancel
+        </Button>
+        <Button disabled={removeSession.isPending} onClick={remove} variant="destructive">
+          Delete
+        </Button>
+      </form>
+    </dialog>
+  );
+}
+
+type AppSidebarProps = {
   readonly isCollapsed: boolean;
   readonly isOpen: boolean;
   readonly onClose: () => void;
@@ -18,14 +78,14 @@ type SessionSidebarProps = {
   readonly selectedSessionId: string | null;
 };
 
-export function SessionSidebar({
+export function AppSidebar({
   isCollapsed,
   isOpen,
   onClose,
   onNewSession,
   onToggle,
   selectedSessionId,
-}: SessionSidebarProps) {
+}: AppSidebarProps) {
   const {
     loadMore,
     results: sessions,
@@ -106,7 +166,7 @@ export function SessionSidebar({
         >
           <p className="px-2 pb-1.5 text-sm font-medium text-muted-foreground">Sessions</p>
           {sessions.map((session) => (
-            <SessionSidebarItem
+            <SessionListItem
               isSelected={selectedSessionId === session.sessionId}
               key={session.sessionId}
               onDelete={openDelete}

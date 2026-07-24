@@ -26,8 +26,8 @@ of the product.
   the behavior implied by its name; do not move unrelated actions into it to hide
   coordination. An optional feature must be removable by deleting its import and
   composition node without breaking sibling capabilities.
-- Express UI variants with focused components and early returns. Do not accumulate
-  JSX in mutable variables or turn one component into a dispatcher for unrelated UI.
+- Mutable JSX variables are an antipattern. Compose focused components with early
+  returns instead of assigning JSX to `let` variables.
 - Keep one source of truth and derive the rest. Model state with one explicit status,
   not overlapping booleans or synchronization effects.
 - Keep logic above JSX. Avoid ternaries and boolean chains in markup. Use

@@ -15,8 +15,7 @@ import { type MouseEvent, type ReactNode, useMemo } from "react";
 
 import Diff from "@/components/code/diff";
 import { CommandLogs } from "@/components/session/command-logs";
-import { ModelActivity } from "@/components/session/model-activity";
-import { useElapsed } from "@/components/session/use-elapsed";
+import { ModelActivity, useElapsed } from "@/components/session/model-activity";
 import { CodeBlock } from "@/components/ui/code-block";
 import { useOpenWorkspaceFile } from "@/components/workspace/workspace-navigation";
 import type { ActivityTiming } from "@/lib/eve-events";
@@ -157,6 +156,26 @@ function getFileDiff(part: EveDynamicToolPart): FileDiff | undefined {
   return fileDiffSchema.safeParse(part.output).data;
 }
 
+function getActivityContent(
+  part: EveDynamicToolPart,
+  definition: ToolDefinition,
+  fileDiff: FileDiff | undefined,
+  isRunning: boolean,
+): ReactNode {
+  const content = getContent(part, definition, fileDiff);
+  if (content) return content;
+  if (isRunning && definition.hasCommandLogs) return <CommandLogs />;
+  return null;
+}
+
+function getActivityDetail(path: string | undefined, definition: ToolDefinition): ReactNode {
+  if (!path) return null;
+  if (definition.input === "filePath") {
+    return <WorkspaceFileLink path={path} />;
+  }
+  return path;
+}
+
 type ToolActivityProps = {
   readonly isActive: boolean;
   readonly part: EveDynamicToolPart;
@@ -169,11 +188,9 @@ export function ToolActivity({ isActive, part, timing }: ToolActivityProps) {
   const definition = getToolDefinition(part.toolName);
   const label = getLabel(part, definition, isRunning);
   const fileDiff = getFileDiff(part);
-  let content = getContent(part, definition, fileDiff);
-  if (!content && isRunning && definition.hasCommandLogs) content = <CommandLogs />;
   const path = getToolDetail(part, definition);
-  let detail: ReactNode = path;
-  if (path && definition.input === "filePath") detail = <WorkspaceFileLink path={path} />;
+  const content = getActivityContent(part, definition, fileDiff, isRunning);
+  const detail = getActivityDetail(path, definition);
 
   return (
     <ModelActivity

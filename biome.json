@@ -41,7 +41,6 @@
     {
       "includes": [
         "components/code/diff-renderer.tsx",
-        "components/code/file-viewer.tsx",
         "components/workspace/use-workspace-tree.ts",
         "components/workspace/workspace-browser.tsx",
         "components/workspace/workspace-panel.tsx",

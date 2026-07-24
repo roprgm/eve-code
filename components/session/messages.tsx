@@ -1,28 +1,26 @@
 import type { EveMessage, EveMessagePart } from "eve/client";
 import { Brain } from "lucide-react";
+import { Streamdown } from "streamdown";
 
+import { AssistantMessage, MessageActions, UserMessage } from "@/components/chat/message";
+import { ThreadMessage } from "@/components/chat/thread";
 import { InputRequest } from "@/components/session/input-request";
-import MarkdownMessage from "@/components/session/markdown-message";
-import { ModelActivity } from "@/components/session/model-activity";
+import { ModelActivity, useElapsed } from "@/components/session/model-activity";
 import { ToolActivity } from "@/components/session/tool-activity";
-import { useElapsed } from "@/components/session/use-elapsed";
-import { CopyButton } from "@/components/ui/copy-button";
-import { MessageScrollerItem } from "@/components/ui/message-scroller";
+import type { useSession } from "@/components/session/use-session";
 import { type ActivityTiming, getReasoningTimingKey, getToolTimingKey } from "@/lib/eve-events";
+
+import "streamdown/styles.css";
+
+const messageControls = { table: false } as const;
 
 type Timings = ReadonlyMap<string, ActivityTiming>;
 
-const timeFormatter = new Intl.DateTimeFormat(undefined, {
-  hour: "numeric",
-  minute: "2-digit",
-});
-
 function isRenderedPart(part: EveMessagePart): boolean {
-  if (part.type === "dynamic-tool" && part.toolName === "ask_question") {
-    return part.toolMetadata?.eve?.inputRequest !== undefined;
-  }
-  if (part.type === "dynamic-tool") return true;
   if (part.type === "text" || part.type === "reasoning") return part.text.trim().length > 0;
+  if (part.type === "dynamic-tool") {
+    return part.toolName !== "ask_question" || part.toolMetadata?.eve?.inputRequest !== undefined;
+  }
   return false;
 }
 
@@ -34,22 +32,15 @@ function getPartKey(part: EveMessagePart, index: number): string {
   return `${part.type}:${index}`;
 }
 
-function MessageActions({
-  createdAt,
-  text,
-}: {
-  readonly createdAt?: number;
-  readonly text: string;
-}) {
+function MarkdownMessage({ isAnimating, text }: { isAnimating: boolean; text: string }) {
   return (
-    <div className="mt-1 flex h-6 items-center gap-1 text-muted-foreground sm:opacity-0 sm:transition-opacity sm:group-hover/message:opacity-100 sm:group-focus-within/message:opacity-100">
-      {createdAt !== undefined && (
-        <time className="text-sm" dateTime={new Date(createdAt).toISOString()}>
-          {timeFormatter.format(createdAt)}
-        </time>
-      )}
-      <CopyButton value={text} />
-    </div>
+    <Streamdown
+      className="model-response my-1 wrap-anywhere space-y-2 first:mt-0 last:mb-0 [&_li]:py-0 [&_p]:leading-chat"
+      controls={messageControls}
+      isAnimating={isAnimating}
+    >
+      {text}
+    </Streamdown>
   );
 }
 
@@ -117,7 +108,7 @@ function AssistantPart({
   return null;
 }
 
-type MessageProps = {
+type SessionMessageProps = {
   readonly canAnswer: boolean;
   readonly createdAt?: number;
   readonly isActive: boolean;
@@ -127,7 +118,7 @@ type MessageProps = {
   readonly timings: Timings;
 };
 
-export function Message({
+function SessionMessage({
   canAnswer,
   createdAt,
   isActive,
@@ -135,47 +126,73 @@ export function Message({
   onAnswer,
   pendingRequestId,
   timings,
-}: MessageProps) {
+}: SessionMessageProps) {
   const textParts = message.parts.filter((part) => part.type === "text");
   const text = textParts.map((part) => part.text).join("\n\n");
 
   if (message.role === "user") {
     if (!text.trim()) return null;
     return (
-      <MessageScrollerItem messageId={message.id}>
-        <article aria-label="You" className="group/message flex flex-col items-end py-3">
-          <p className="max-w-[85%] wrap-anywhere whitespace-pre-wrap rounded-xl bg-muted px-4 py-2 leading-chat sm:max-w-[75%]">
-            {text}
-          </p>
-          <MessageActions createdAt={createdAt} text={text} />
-        </article>
-      </MessageScrollerItem>
+      <UserMessage
+        actions={<MessageActions createdAt={createdAt} text={text} />}
+        messageId={message.id}
+      >
+        {text}
+      </UserMessage>
     );
   }
 
   const parts = message.parts.filter(isRenderedPart);
   if (parts.length === 0) return null;
-  const showActions = Boolean(text) && !isActive;
+  const actions = text ? (
+    <MessageActions
+      aria-hidden={isActive}
+      className={isActive ? "invisible" : undefined}
+      createdAt={createdAt}
+      text={text}
+    />
+  ) : undefined;
 
   return (
-    <MessageScrollerItem messageId={message.id}>
-      <article aria-label="eve-code" className="group/message pt-3 pb-5">
-        <div>
-          {parts.map((part, index) => (
-            <AssistantPart
-              canAnswer={canAnswer}
-              isActive={isActive}
-              key={getPartKey(part, index)}
-              message={message}
-              onAnswer={onAnswer}
-              part={part}
-              pendingRequestId={pendingRequestId}
-              timings={timings}
-            />
-          ))}
-        </div>
-        {showActions && <MessageActions createdAt={createdAt} text={text} />}
-      </article>
-    </MessageScrollerItem>
+    <AssistantMessage actions={actions} messageId={message.id}>
+      {parts.map((part, index) => (
+        <AssistantPart
+          canAnswer={canAnswer}
+          isActive={isActive}
+          key={getPartKey(part, index)}
+          message={message}
+          onAnswer={onAnswer}
+          part={part}
+          pendingRequestId={pendingRequestId}
+          timings={timings}
+        />
+      ))}
+    </AssistantMessage>
+  );
+}
+
+export function SessionMessages({ view }: { readonly view: ReturnType<typeof useSession> }) {
+  return (
+    <>
+      {view.messages.map((message) => (
+        <SessionMessage
+          canAnswer={!view.isGenerating && !view.isStopping}
+          createdAt={message.createdAt}
+          isActive={view.isGenerating && message.metadata?.status === "streaming"}
+          key={message.id}
+          message={message}
+          onAnswer={view.answerQuestion}
+          pendingRequestId={view.pendingInput?.requestId}
+          timings={view.timings}
+        />
+      ))}
+      {view.activityLabel && (
+        <ThreadMessage>
+          <div className="pt-3 pb-8">
+            <ModelActivity icon={Brain} isAnimated label={view.activityLabel} />
+          </div>
+        </ThreadMessage>
+      )}
+    </>
   );
 }

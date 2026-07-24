@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, FilePlus2, GitFork, type LucideIcon } from "lucide-react";
-import { type FormEvent, type ReactNode, useRef, useState } from "react";
+import { type InputEvent, type PropsWithChildren, type SubmitEvent, useRef, useState } from "react";
 
-import { Composer } from "@/components/composer/composer";
+import { Composer } from "@/components/chat/composer";
 import { Button } from "@/components/ui/button";
 import { type GitRepository, parseGitHubRepository } from "@/lib/github";
 
@@ -47,6 +47,14 @@ function StartBack({ onClick }: { readonly onClick: () => void }) {
   );
 }
 
+function StartContent({ children }: PropsWithChildren) {
+  return (
+    <div className="flex min-h-0 flex-1 items-center justify-center p-6 text-center">
+      {children}
+    </div>
+  );
+}
+
 function StartChoice({
   onEmpty,
   onGitHub,
@@ -85,7 +93,7 @@ function GitHubStart({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function submit(event: FormEvent<HTMLFormElement>): void {
+  function submit(event: SubmitEvent<HTMLFormElement>): void {
     event.preventDefault();
     const input = inputRef.current;
     if (!input) return;
@@ -98,7 +106,7 @@ function GitHubStart({
     onImport(repository);
   }
 
-  function clearError(event: FormEvent<HTMLInputElement>): void {
+  function clearError(event: InputEvent<HTMLInputElement>): void {
     event.currentTarget.setCustomValidity("");
   }
 
@@ -139,32 +147,46 @@ function GitHubStart({
   );
 }
 
+function EmptyStart({
+  onBack,
+  onStart,
+}: {
+  readonly onBack: () => void;
+  readonly onStart: (message: string) => void;
+}) {
+  return (
+    <>
+      <StartContent>
+        <div className="flex flex-col">
+          <StartBack onClick={onBack} />
+          <h2 className="text-2xl font-medium tracking-tight">What should we build?</h2>
+        </div>
+      </StartContent>
+      <div className="shrink-0 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6">
+        <Composer disabled={false} isGenerating={false} onSend={onStart} />
+      </div>
+    </>
+  );
+}
+
 export function SessionStart({ onImport, onStart }: SessionStartProps) {
   const [mode, setMode] = useState<StartMode>("choose");
-  let content: ReactNode = (
-    <StartChoice onEmpty={() => setMode("empty")} onGitHub={() => setMode("github")} />
-  );
-  let composer: ReactNode;
 
   if (mode === "empty") {
-    content = (
-      <div className="flex flex-col">
-        <StartBack onClick={() => setMode("choose")} />
-        <h2 className="text-2xl font-medium tracking-tight">What should we build?</h2>
-      </div>
-    );
-    composer = <Composer onSend={onStart} />;
+    return <EmptyStart onBack={() => setMode("choose")} onStart={onStart} />;
   }
+
   if (mode === "github") {
-    content = <GitHubStart onBack={() => setMode("choose")} onImport={onImport} />;
+    return (
+      <StartContent>
+        <GitHubStart onBack={() => setMode("choose")} onImport={onImport} />
+      </StartContent>
+    );
   }
 
   return (
-    <>
-      <div className="flex min-h-0 flex-1 items-center justify-center p-6 text-center">
-        {content}
-      </div>
-      {composer}
-    </>
+    <StartContent>
+      <StartChoice onEmpty={() => setMode("empty")} onGitHub={() => setMode("github")} />
+    </StartContent>
   );
 }

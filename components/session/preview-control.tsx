@@ -1,12 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Download, ExternalLink, LoaderCircle, Play, Power } from "lucide-react";
+import { ChevronDown, ExternalLink, LoaderCircle, Play, Power } from "lucide-react";
 import type { ReactNode } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { getMenuAnchorStyle, MenuContent, MenuItem } from "@/components/ui/menu";
 import type { Preview } from "@/lib/preview";
-import { getWorkspaceUrl } from "@/lib/workspace";
 
 const sandboxSchema = z.object({
   status: z.enum([
@@ -78,13 +77,29 @@ function PreviewIcon({ action }: { readonly action: PreviewAction }) {
   return <Play aria-hidden="true" />;
 }
 
-function PreviewControl({
+function PreviewStopAction({
+  menuId,
+  onStop,
+}: {
+  readonly menuId: string;
+  readonly onStop?: () => void;
+}) {
+  if (!onStop) return null;
+
+  return (
+    <MenuItem className="text-sm text-destructive" onClick={onStop} popoverTarget={menuId}>
+      <Power aria-hidden="true" className="size-3.5" />
+      Stop preview
+    </MenuItem>
+  );
+}
+
+function PreviewButtons({
   action,
+  actions,
   disabled,
-  isDownloadDisabled,
   label,
   menuId,
-  onDownload,
   onPreview,
   onStop,
   preview,
@@ -92,26 +107,16 @@ function PreviewControl({
   title,
 }: {
   readonly action: PreviewAction;
+  readonly actions?: ReactNode;
   readonly disabled: boolean;
-  readonly isDownloadDisabled: boolean;
   readonly label: string;
   readonly menuId: string;
-  readonly onDownload: () => void;
   readonly onPreview: () => void;
   readonly onStop?: () => void;
   readonly preview: Preview;
   readonly status: VisibleStatus;
   readonly title?: string;
 }) {
-  let stopAction: ReactNode;
-  if (onStop) {
-    stopAction = (
-      <MenuItem className="text-sm text-destructive" onClick={onStop} popoverTarget={menuId}>
-        <Power aria-hidden="true" className="size-3.5" />
-        Stop preview
-      </MenuItem>
-    );
-  }
   return (
     <div className="ml-auto flex">
       <Button
@@ -150,16 +155,8 @@ function PreviewControl({
           </span>
         </div>
         <div className="mt-1 border-t pt-1">
-          <MenuItem
-            className="text-sm"
-            disabled={isDownloadDisabled}
-            onClick={onDownload}
-            popoverTarget={menuId}
-          >
-            <Download aria-hidden="true" className="size-3.5" />
-            Download
-          </MenuItem>
-          {stopAction}
+          {actions}
+          <PreviewStopAction menuId={menuId} onStop={onStop} />
         </div>
       </MenuContent>
     </div>
@@ -195,7 +192,15 @@ function getControlState(status: VisibleStatus, hasError: boolean): ControlState
   return { action: "run", disabled: false, label: "Preview" };
 }
 
-export function SandboxControl({ preview, sessionId }: { preview: Preview; sessionId?: string }) {
+export function PreviewControl({
+  actions,
+  menuId,
+  preview,
+}: {
+  readonly actions?: ReactNode;
+  readonly menuId: string;
+  readonly preview: Preview;
+}) {
   const queryClient = useQueryClient();
   const queryKey = ["sandbox", preview.sandboxId, preview.port] as const;
   const sandbox = useQuery({
@@ -222,11 +227,6 @@ export function SandboxControl({ preview, sessionId }: { preview: Preview; sessi
     action.mutate("stop");
   }
 
-  function onDownload(): void {
-    if (!sessionId) return;
-    window.location.assign(`${getWorkspaceUrl(sessionId)}/download`);
-  }
-
   function onPreview(): void {
     if (control.action === "open") {
       openPreviewTab(url);
@@ -243,18 +243,15 @@ export function SandboxControl({ preview, sessionId }: { preview: Preview; sessi
     });
   }
 
-  let stopPreview: (() => void) | undefined;
-  if (status === "running") stopPreview = onStop;
-  const isDownloadDisabled = !sessionId;
+  const stopPreview = status === "running" ? onStop : undefined;
 
   return (
-    <PreviewControl
+    <PreviewButtons
       action={control.action}
+      actions={actions}
       disabled={control.disabled}
-      isDownloadDisabled={isDownloadDisabled}
       label={control.label}
-      menuId={`sandbox-info-${preview.sandboxId}`}
-      onDownload={onDownload}
+      menuId={menuId}
       onPreview={onPreview}
       onStop={stopPreview}
       preview={preview}
