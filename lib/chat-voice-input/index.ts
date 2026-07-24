@@ -7,4 +7,5 @@ export {
   ChatVoiceInputButton,
   ChatVoiceInputError,
 } from "./controls";
-export { ChatVoiceInputTimer, ChatVoiceInputWaveform } from "./waveform";
+export { ChatVoiceInputTimer } from "./timer";
+export { ChatVoiceInputWaveform } from "./waveform";
