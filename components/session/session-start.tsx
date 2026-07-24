@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, FilePlus2, GitFork, type LucideIcon } from "lucide-react";
 import { type FormEvent, type ReactNode, useRef, useState } from "react";
 
-import { Composer } from "@/components/session/composer";
+import { Composer } from "@/components/composer/composer";
 import { Button } from "@/components/ui/button";
 import { type GitRepository, parseGitHubRepository } from "@/lib/github";
 

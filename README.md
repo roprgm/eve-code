@@ -52,7 +52,8 @@ bunx vercel env pull .env.local
 bun run dev
 ```
 
-Set `AI_GATEWAY_API_KEY` in `.env.local` only when Vercel OIDC is unavailable.
+Set `TRANSCRIPTION_AI_GATEWAY_API_KEY` in `.env.local` to enable voice input.
+Eve continues to use Vercel OIDC, independently from this key.
 
 Open [http://localhost:5173](http://localhost:5173).
 

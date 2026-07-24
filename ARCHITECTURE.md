@@ -37,6 +37,9 @@ Eve service ──────────────────────�
 Convex (sessions, turns) ──▶ subscribed browser cache
 
 Browser ── workspace and preview HTTP ──▶ Eve channels ──▶ same sandbox
+
+Browser ── short-lived transcription token ──▶ Eve channel ──▶ AI Gateway
+   └────────────────── live PCM over WebSocket ─────────────▶
 ```
 
 The HTTP channels are narrow product adapters. Eve still creates the session and
@@ -48,7 +51,7 @@ sandbox, runs the agent, serializes turns, and owns the durable event stream.
   session-bound sandbox.
 - **Convex** owns the durable product index and compact completed-turn checkpoints.
 - **The browser runtime** owns only in-flight events, optimistic input, view state,
-  and caches derived from Eve or Convex.
+  microphone capture, live transcripts, and caches derived from Eve or Convex.
 - **Eve channels** expose narrow browser-to-sandbox operations that Eve does not
   provide directly. They do not become a second application backend.
 - **Git metadata** describes the repository currently found in a session workspace.
@@ -153,13 +156,14 @@ tracked in [docs/eve-improvements.md](./docs/eve-improvements.md).
   generated directories, caps the tree at 10,000 paths, and refuses binary or text
   files over 200 KiB.
 
-The current workspace routes are:
+The current browser-facing product channel routes are:
 
 ```text
 GET /eve/v1/workspace/:sessionId
 GET /eve/v1/workspace/:sessionId/file?path=...
 GET /eve/v1/workspace/:sessionId/command
 GET /eve/v1/workspace/:sessionId/download
+POST /eve/v1/transcription
 ```
 
 Here `sessionId` is Eve's durable session ID, not the app's public session ID.
@@ -174,6 +178,10 @@ Here `sessionId` is Eve's durable session ID, not the app's public session ID.
   Its header shows the selected GitHub repository when the workspace has one.
   The read-only workspace contains breadcrumbs, a keyboard-accessible tree, and a
   highlighted source viewer. File tool activity can open the corresponding file.
+- **Composer** captures microphone PCM through a browser-only adapter with no AI
+  dependency. A separate adapter streams it to AI Gateway with a short-lived token;
+  its server route uses a dedicated Gateway key so Eve remains on OIDC. Audio is
+  never recorded or persisted.
 - **Activity** projects Eve events into reasoning, tool calls, live Bash output,
   file diffs, and elapsed time.
 - **Session management** includes responsive sidebar navigation, rename, and delete.
@@ -223,6 +231,7 @@ convex/         schema, session operations, and checkpoint persistence
 lib/            lowest-level non-component modules and runtime/vendor adapters
 components/
   ui/           generic visual primitives
+  composer/     message input, voice controls, waveform, and transcription lifecycle
   code/         Pierre-backed source and diff facades
   session/      conversation, activity, navigation, and preview control
   workspace/    file navigation, tree, queries, and panel
@@ -242,6 +251,10 @@ Layer rules:
   receive one stable shape instead of repeating defensive parsing.
 - Feature components may import `ui/`, `lib/`, generated Convex APIs, and sibling or
   lower feature facades. `app/` wires them together; nothing imports from `app/`.
+- Parents compose sibling capabilities and own only the coordination between them.
+  Feature components own the behavior named by their boundary and never absorb
+  unrelated sibling actions. Removing an optional feature at its composition site
+  must leave unrelated workflows intact.
 - Vendor renderers stay behind `components/code/` or the workspace feature boundary.
   Consumers do not depend on Pierre directly.
 - There are no barrel files. Modules export only what a real consumer uses.
@@ -253,6 +266,7 @@ Layer rules:
 The runtime remains intentionally short:
 
 - `eve`, `@vercel/sandbox`, and `@vercel/oidc` for the agent and sandbox
+- `ai` and `@ai-sdk/gateway` for live transcription and short-lived browser tokens
 - `convex`, `@convex-dev/react-query`, and TanStack Query for durable reactive data
 - React 19, React Router, and Zustand for the browser runtime
 - Tailwind 4, `@shadcn/react`, Lucide, and Streamdown for the interface

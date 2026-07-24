@@ -22,6 +22,12 @@ of the product.
 - Keep functions and components small, linear, and responsible for one thing. If a
   unit must understand unrelated or partially defined data, fix the boundary or data
   model.
+- Compose sibling capabilities in their nearest common parent. A component owns only
+  the behavior implied by its name; do not move unrelated actions into it to hide
+  coordination. An optional feature must be removable by deleting its import and
+  composition node without breaking sibling capabilities.
+- Express UI variants with focused components and early returns. Do not accumulate
+  JSX in mutable variables or turn one component into a dispatcher for unrelated UI.
 - Keep one source of truth and derive the rest. Model state with one explicit status,
   not overlapping booleans or synchronization effects.
 - Keep logic above JSX. Avoid ternaries and boolean chains in markup. Use
