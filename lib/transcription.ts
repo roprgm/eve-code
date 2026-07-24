@@ -2,6 +2,8 @@ import { createGateway, experimental_streamTranscribe as streamTranscribe } from
 
 import { createMicrophonePCMStream } from "@/lib/audio";
 
+const tokenTimeoutMs = 15_000;
+
 export type Transcription = {
   readonly stop: () => void;
   readonly stream: MediaStream;
@@ -14,7 +16,10 @@ type Token = {
 };
 
 async function requestToken(signal: AbortSignal): Promise<Token> {
-  const response = await fetch("/eve/v1/transcription", { method: "POST", signal });
+  const response = await fetch("/eve/v1/transcription", {
+    method: "POST",
+    signal: AbortSignal.any([signal, AbortSignal.timeout(tokenTimeoutMs)]),
+  });
   const body = (await response.json().catch(() => ({}))) as Partial<Token>;
   if (!response.ok || typeof body.model !== "string" || typeof body.token !== "string") {
     throw new Error("Voice input is unavailable.");

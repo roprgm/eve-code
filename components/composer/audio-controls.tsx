@@ -17,7 +17,14 @@ function message(prefix: string, transcript: string): string {
   return [prefix, transcript].filter(Boolean).join(" ").trim();
 }
 
-function RecordingWaveform({ recording }: { readonly recording: Recording }) {
+function RecordingStatus({ recording }: { readonly recording: Recording }) {
+  if (recording === "error") {
+    return (
+      <span className="min-w-0 flex-1 truncate text-sm text-destructive" role="alert">
+        Voice input is unavailable.
+      </span>
+    );
+  }
   if (typeof recording !== "object") return null;
   return <Waveform stream={recording.stream} />;
 }
@@ -141,7 +148,7 @@ export function AudioControls({ disabled, onChange, value }: AudioControlsProps)
 
   return (
     <div className="flex min-w-0 flex-1 items-center justify-end gap-1">
-      <RecordingWaveform recording={recording} />
+      <RecordingStatus recording={recording} />
       <RecordButton
         disabled={disabled}
         onStart={() => void start()}
