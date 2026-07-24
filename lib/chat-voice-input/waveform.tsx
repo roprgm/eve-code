@@ -1,10 +1,6 @@
 import { useEffect, useRef } from "react";
 
-type WaveformProps = {
-  readonly stream: MediaStream;
-};
-
-export function Waveform({ stream }: WaveformProps) {
+export function Waveform({ stream }: { readonly stream: MediaStream }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const timeRef = useRef<HTMLTimeElement>(null);
 

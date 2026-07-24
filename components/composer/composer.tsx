@@ -1,8 +1,8 @@
 import { ArrowUp, Square } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef } from "react";
 
-import { AudioControls } from "@/components/composer/audio-controls";
 import { Button } from "@/components/ui/button";
+import { ChatVoiceInput } from "@/lib/chat-voice-input/chat-voice-input";
 import { useComposerStore } from "@/lib/composer-store";
 
 type ComposerProps = {
@@ -102,7 +102,7 @@ export function Composer({
           value={value}
         />
         <div className="flex items-center gap-1 pt-1">
-          <AudioControls disabled={audioDisabled} onChange={onChange} value={value} />
+          <ChatVoiceInput disabled={audioDisabled} onChange={onChange} value={value} />
           <SubmitButton disabled={submitDisabled} isGenerating={isGenerating} onStop={onStop} />
         </div>
       </form>

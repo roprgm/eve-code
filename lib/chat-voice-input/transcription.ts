@@ -4,7 +4,7 @@ import {
   experimental_streamTranscribe as streamTranscribe,
 } from "ai";
 
-import { createMicrophonePCMStream } from "@/lib/audio";
+import { createMicrophonePCMStream } from "./microphone";
 
 const tokenTimeoutMs = 15_000;
 

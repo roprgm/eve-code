@@ -178,10 +178,11 @@ Here `sessionId` is Eve's durable session ID, not the app's public session ID.
   Its header shows the selected GitHub repository when the workspace has one.
   The read-only workspace contains breadcrumbs, a keyboard-accessible tree, and a
   highlighted source viewer. File tool activity can open the corresponding file.
-- **Composer** captures microphone PCM through a browser-only adapter with no AI
-  dependency. A separate adapter streams it to AI Gateway with a short-lived token;
-  its server route uses a dedicated Gateway key so Eve remains on OIDC. Audio is
-  never recorded or persisted.
+- **Composer** composes text input, `ChatVoiceInput`, and submit as independent
+  controls. `lib/chat-voice-input/` owns its React UI, microphone PCM worklet,
+  browser transcription adapter, and token response. The Eve channel only registers
+  that response at the product route. Its dedicated Gateway key keeps Eve on OIDC;
+  audio is never recorded or persisted.
 - **Activity** projects Eve events into reasoning, tool calls, live Bash output,
   file diffs, and elapsed time.
 - **Session management** includes responsive sidebar navigation, rename, and delete.
@@ -228,10 +229,12 @@ agent/          Eve agent and its server-side adapters
   skills/       optional stack recipes
   tools/        narrow additions to Eve's built-in tool set
 convex/         schema, session operations, and checkpoint persistence
-lib/            lowest-level non-component modules and runtime/vendor adapters
+lib/            lowest-level reusable modules and extractable feature packages
+  chat-voice-input/
+                voice UI, microphone worklet, transcription, and server adapter
 components/
   ui/           generic visual primitives
-  composer/     message input, voice controls, waveform, and transcription lifecycle
+  composer/     message input, optional controls, and submit composition
   code/         Pierre-backed source and diff facades
   session/      conversation, activity, navigation, and preview control
   workspace/    file navigation, tree, queries, and panel
@@ -244,9 +247,10 @@ Layer rules:
 
 - `agent/` imports low-level `lib/` contracts and generated Convex APIs, never UI.
 - `convex/` imports only pure `lib/` modules.
-- `lib/` never imports feature components, `app/`, `agent/`, or `convex/`. A module
-  may be cross-runtime or browser-only, but its dependencies must make that boundary
-  obvious.
+- `lib/` never imports feature components, `app/`, `agent/`, or `convex/`. An
+  extractable feature may own components as long as its directory remains
+  self-contained. Modules may be cross-runtime, browser-only, or server-only, but
+  filenames and dependencies must make those boundaries obvious.
 - External data is validated and normalized at its boundary. Internal consumers
   receive one stable shape instead of repeating defensive parsing.
 - Feature components may import `ui/`, `lib/`, generated Convex APIs, and sibling or

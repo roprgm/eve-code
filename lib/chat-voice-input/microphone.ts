@@ -1,3 +1,5 @@
+import processorUrl from "./pcm-processor.js?worker&url";
+
 const sampleRate = 24_000;
 
 export type MicrophonePCMStream = {
@@ -19,7 +21,7 @@ export async function createMicrophonePCMStream(): Promise<MicrophonePCMStream> 
   const context = new AudioContext({ sampleRate });
 
   try {
-    await context.audioWorklet.addModule("/pcm-processor.js");
+    await context.audioWorklet.addModule(processorUrl);
   } catch (error) {
     for (const track of mediaStream.getTracks()) track.stop();
     void context.close();

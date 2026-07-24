@@ -1,17 +1,19 @@
 import { Mic, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { Waveform } from "@/components/composer/waveform";
-import { Button } from "@/components/ui/button";
-import { startTranscription, type Transcription } from "@/lib/transcription";
+import { startTranscription, type Transcription } from "./transcription";
+import { Waveform } from "./waveform";
 
-type AudioControlsProps = {
+type ChatVoiceInputProps = {
   readonly disabled: boolean;
   readonly onChange: (value: string) => void;
   readonly value: string;
 };
 
 type Recording = Transcription | "busy" | "error" | undefined;
+
+const buttonClassName =
+  "inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0";
 
 function message(prefix: string, transcript: string): string {
   return [prefix, transcript].filter(Boolean).join(" ").trim();
@@ -42,16 +44,15 @@ function RecordButton({
 }) {
   if (typeof recording === "object") {
     return (
-      <Button
+      <button
         aria-label="Stop voice input"
-        className="size-8 rounded-full bg-accent"
+        className={`${buttonClassName} bg-accent`}
         disabled={disabled}
         onClick={onStop}
-        size="icon-sm"
-        variant="ghost"
+        type="button"
       >
         <Square aria-hidden="true" className="fill-current" />
-      </Button>
+      </button>
     );
   }
 
@@ -61,21 +62,20 @@ function RecordButton({
   const title = isUnavailable ? "Voice input is unavailable." : undefined;
   const buttonDisabled = disabled || isBusy;
   return (
-    <Button
+    <button
       aria-label={label}
-      className="size-8 rounded-full"
+      className={buttonClassName}
       disabled={buttonDisabled}
       onClick={onStart}
-      size="icon-sm"
       title={title}
-      variant="ghost"
+      type="button"
     >
       <Mic aria-hidden="true" className="size-4" />
-    </Button>
+    </button>
   );
 }
 
-export function AudioControls({ disabled, onChange, value }: AudioControlsProps) {
+export function ChatVoiceInput({ disabled, onChange, value }: ChatVoiceInputProps) {
   const [recording, setRecording] = useState<Recording>();
   const controller = useRef<AbortController | undefined>(undefined);
   const prefix = useRef("");
