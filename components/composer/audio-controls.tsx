@@ -63,7 +63,7 @@ function RecordButton({
       title={title}
       variant="ghost"
     >
-      <Mic aria-hidden="true" />
+      <Mic aria-hidden="true" className="size-[26px]" />
     </Button>
   );
 }

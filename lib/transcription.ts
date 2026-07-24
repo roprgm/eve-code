@@ -26,8 +26,11 @@ export async function startTranscription(
   onDelta: (delta: string) => void,
   signal: AbortSignal,
 ): Promise<Transcription> {
-  const { model, token } = await requestToken(signal);
-  const microphone = await createMicrophonePCMStream();
+  const microphonePromise = createMicrophonePCMStream();
+  const tokenPromise = requestToken(signal);
+  void tokenPromise.catch(() => undefined);
+  const microphone = await microphonePromise;
+
   if (signal.aborted) {
     await microphone.stop();
     signal.throwIfAborted();
@@ -36,15 +39,16 @@ export async function startTranscription(
   const stop = () => void microphone.stop();
   signal.addEventListener("abort", stop, { once: true });
 
-  const result = streamTranscribe({
-    abortSignal: signal,
-    audio: microphone.audioStream,
-    inputAudioFormat: { rate: microphone.sampleRate, type: "audio/pcm" },
-    model: createGateway({ apiKey: token }).transcription(model),
-  });
-
   const text = (async () => {
     try {
+      const { model, token } = await tokenPromise;
+      const result = streamTranscribe({
+        abortSignal: signal,
+        audio: microphone.audioStream,
+        inputAudioFormat: { rate: microphone.sampleRate, type: "audio/pcm" },
+        model: createGateway({ apiKey: token }).transcription(model),
+      });
+
       for await (const part of result.fullStream) {
         if (part.type === "transcript-delta") onDelta(part.delta);
         if (part.type === "error") throw part.error;
