@@ -1,4 +1,8 @@
-import { createGateway, experimental_streamTranscribe as streamTranscribe } from "ai";
+import {
+  createGateway,
+  NoTranscriptGeneratedError,
+  experimental_streamTranscribe as streamTranscribe,
+} from "ai";
 
 import { createMicrophonePCMStream } from "@/lib/audio";
 
@@ -63,7 +67,10 @@ export async function startTranscription(
       signal.removeEventListener("abort", stop);
       await microphone.stop();
     }
-  })();
+  })().catch((error) => {
+    if (NoTranscriptGeneratedError.isInstance(error)) return "";
+    throw error;
+  });
 
   return { stop, stream: microphone.mediaStream, text };
 }

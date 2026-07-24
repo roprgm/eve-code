@@ -20,7 +20,7 @@ function message(prefix: string, transcript: string): string {
 function RecordingStatus({ recording }: { readonly recording: Recording }) {
   if (recording === "error") {
     return (
-      <span className="min-w-0 flex-1 truncate text-sm text-destructive" role="alert">
+      <span className="min-w-0 truncate text-right text-sm text-destructive" role="alert">
         Voice input is unavailable.
       </span>
     );
