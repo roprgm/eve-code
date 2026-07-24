@@ -1,8 +1,9 @@
 import { ArrowUp, Square } from "lucide-react";
 import { type KeyboardEvent, type SubmitEvent, useEffect, useRef } from "react";
 
+import { ModelSelector } from "@/components/chat/model-selector";
 import { Button } from "@/components/ui/button";
-import ChatVoiceInput from "@/lib/chat-voice-input";
+import ChatVoiceInput, { useChatVoiceInput } from "@/lib/chat-voice-input";
 import { useComposerStore } from "@/lib/composer-store";
 
 type ComposerProps = {
@@ -19,6 +20,12 @@ type TextInputProps = {
 };
 
 type SubmitButtonProps = Pick<ComposerProps, "disabled" | "isGenerating" | "onStop">;
+
+function SecondaryControls({ disabled }: { readonly disabled: boolean }) {
+  const { status } = useChatVoiceInput();
+  if (status === "recording") return null;
+  return <ModelSelector disabled={disabled} />;
+}
 
 function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
   if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
@@ -105,8 +112,20 @@ export function Composer({ disabled, isGenerating, onSend, onStop }: ComposerPro
     >
       <TextInput disabled={disabled} onValueChange={onValueChange} value={value} />
       <div className="flex min-w-0 items-center justify-end gap-1 pt-1">
-        <ChatVoiceInput disabled={audioDisabled} onValueChange={onValueChange} value={value} />
-        <SubmitButton disabled={submitDisabled} isGenerating={isGenerating} onStop={onStop} />
+        <ChatVoiceInput.Provider
+          disabled={audioDisabled}
+          onValueChange={onValueChange}
+          value={value}
+        >
+          <ChatVoiceInput.Error />
+          <ChatVoiceInput.Waveform />
+          <ChatVoiceInput.Timer />
+          <SecondaryControls disabled={disabled} />
+          <div className="flex gap-1.5">
+            <ChatVoiceInput.Button />
+            <SubmitButton disabled={submitDisabled} isGenerating={isGenerating} onStop={onStop} />
+          </div>
+        </ChatVoiceInput.Provider>
       </div>
     </form>
   );

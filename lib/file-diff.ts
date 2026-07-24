@@ -13,14 +13,15 @@ export function computeFileDiff(
   original: string | null,
   edited: string,
 ): FileDiff | undefined {
-  if (original === null || original === edited) return;
+  const previous = original ?? "";
+  if (previous === edited) return;
   if (
-    Buffer.byteLength(original, "utf8") > fileBytesMax ||
+    Buffer.byteLength(previous, "utf8") > fileBytesMax ||
     Buffer.byteLength(edited, "utf8") > fileBytesMax
   ) {
     return;
   }
-  const diff = createPatch(path, original, edited, undefined, undefined, {
+  const diff = createPatch(path, previous, edited, undefined, undefined, {
     context: 4,
     timeout: 2_000,
   });

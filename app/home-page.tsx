@@ -4,6 +4,7 @@ import { href, useNavigate } from "react-router";
 import { AppHeader } from "@/components/app-header";
 import { SessionStart } from "@/components/session/session-start";
 import { api } from "@/convex/_generated/api";
+import { useComposerStore } from "@/lib/composer-store";
 import type { GitRepository } from "@/lib/github";
 import { createPublicId } from "@/lib/identity";
 import { sendTurn } from "@/lib/session-runtime";
@@ -11,6 +12,7 @@ import { sendTurn } from "@/lib/session-runtime";
 export function HomePage() {
   const createSession = useConvexMutation(api.sessions.create);
   const navigate = useNavigate();
+  const selectedModel = useComposerStore((state) => state.selectedModel);
 
   function openSession(sessionId: string): void {
     void navigate(href("/s/:sessionId", { sessionId }));
@@ -23,6 +25,7 @@ export function HomePage() {
       { clientContext, message },
       {
         beforeSend: createSession({ message, sessionId }),
+        modelId: selectedModel,
       },
     );
     openSession(sessionId);
