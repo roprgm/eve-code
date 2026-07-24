@@ -1,17 +1,17 @@
 import { useEffect, useRef } from "react";
 
-export function Waveform({ stream }: { readonly stream: MediaStream }) {
+import { useChatVoiceInput } from "./chat-voice-input";
+
+export function ChatVoiceInputWaveform() {
+  const { stream } = useChatVoiceInput();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const timeRef = useRef<HTMLTimeElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const time = timeRef.current;
     const drawing = canvas?.getContext("2d");
-    if (!canvas || !time || !drawing) return;
+    if (!stream || !canvas || !drawing) return;
 
     const element = canvas;
-    const clock = time;
     const context = drawing;
     const audio = new AudioContext();
     const analyser = audio.createAnalyser();
@@ -19,7 +19,6 @@ export function Waveform({ stream }: { readonly stream: MediaStream }) {
     const samples = new Float32Array(analyser.fftSize);
     const levels: number[] = [];
     const color = getComputedStyle(element).color;
-    let elapsed = -1;
     let frame = 0;
 
     analyser.fftSize = 256;
@@ -53,12 +52,6 @@ export function Waveform({ stream }: { readonly stream: MediaStream }) {
           barHeight,
         );
       }
-
-      const nextElapsed = Math.floor(audio.currentTime);
-      if (nextElapsed !== elapsed) {
-        elapsed = nextElapsed;
-        clock.textContent = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`;
-      }
       frame = requestAnimationFrame(draw);
     }
 
@@ -70,17 +63,41 @@ export function Waveform({ stream }: { readonly stream: MediaStream }) {
     };
   }, [stream]);
 
+  if (!stream) return null;
   return (
-    <>
-      <canvas
-        aria-label="Live audio waveform"
-        className="h-8 min-w-0 flex-1 text-foreground"
-        ref={canvasRef}
-        role="img"
-      />
-      <time className="w-9 text-right text-sm text-muted-foreground tabular-nums" ref={timeRef}>
-        0:00
-      </time>
-    </>
+    <canvas
+      aria-label="Live audio waveform"
+      className="h-8 min-w-0 flex-1 text-foreground"
+      ref={canvasRef}
+      role="img"
+    />
+  );
+}
+
+export function ChatVoiceInputTimer() {
+  const { stream } = useChatVoiceInput();
+  const timeRef = useRef<HTMLTimeElement>(null);
+
+  useEffect(() => {
+    const time = timeRef.current;
+    if (!stream || !time) return;
+    const clock = time;
+    const startedAt = performance.now();
+
+    function update(): void {
+      const elapsed = Math.floor((performance.now() - startedAt) / 1_000);
+      clock.textContent = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`;
+    }
+
+    update();
+    const interval = window.setInterval(update, 250);
+    return () => window.clearInterval(interval);
+  }, [stream]);
+
+  if (!stream) return null;
+  return (
+    <time className="w-9 text-right text-sm text-muted-foreground tabular-nums" ref={timeRef}>
+      0:00
+    </time>
   );
 }

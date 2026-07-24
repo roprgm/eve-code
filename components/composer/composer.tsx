@@ -2,7 +2,14 @@ import { ArrowUp, Square } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
-import { ChatVoiceInput } from "@/lib/chat-voice-input/chat-voice-input";
+import {
+  ChatVoiceInputError,
+  ChatVoiceInputProvider,
+  ChatVoiceInputStartButton,
+  ChatVoiceInputStopButton,
+  ChatVoiceInputTimer,
+  ChatVoiceInputWaveform,
+} from "@/lib/chat-voice-input";
 import { useComposerStore } from "@/lib/composer-store";
 
 type ComposerProps = {
@@ -25,7 +32,7 @@ function SubmitButton({
     return (
       <Button
         aria-label="Stop generating"
-        className="ml-auto size-8 rounded-full"
+        className="size-8 rounded-full"
         disabled={!onStop}
         onClick={onStop}
         size="icon-sm"
@@ -38,7 +45,7 @@ function SubmitButton({
   return (
     <Button
       aria-label="Send message"
-      className="ml-auto size-8 rounded-full"
+      className="size-8 rounded-full"
       disabled={disabled}
       size="icon-sm"
       type="submit"
@@ -101,8 +108,14 @@ export function Composer({
           rows={1}
           value={value}
         />
-        <div className="flex items-center gap-1 pt-1">
-          <ChatVoiceInput disabled={audioDisabled} onChange={onChange} value={value} />
+        <div className="flex min-w-0 items-center justify-end gap-1 pt-1">
+          <ChatVoiceInputProvider disabled={audioDisabled} onValueChange={onChange} value={value}>
+            <ChatVoiceInputError />
+            <ChatVoiceInputWaveform />
+            <ChatVoiceInputTimer />
+            <ChatVoiceInputStartButton />
+            <ChatVoiceInputStopButton />
+          </ChatVoiceInputProvider>
           <SubmitButton disabled={submitDisabled} isGenerating={isGenerating} onStop={onStop} />
         </div>
       </form>

@@ -178,11 +178,12 @@ Here `sessionId` is Eve's durable session ID, not the app's public session ID.
   Its header shows the selected GitHub repository when the workspace has one.
   The read-only workspace contains breadcrumbs, a keyboard-accessible tree, and a
   highlighted source viewer. File tool activity can open the corresponding file.
-- **Composer** composes text input, `ChatVoiceInput`, and submit as independent
-  controls. `lib/chat-voice-input/` owns its React UI, microphone PCM worklet,
-  browser transcription adapter, and token response. The Eve channel only registers
-  that response at the product route. Its dedicated Gateway key keeps Eve on OIDC;
-  audio is never recorded or persisted.
+- **Composer** composes text input, headless voice primitives, and submit as
+  independent controls. `lib/chat-voice-input/` owns one provider for the recording
+  lifecycle plus hook-driven button, error, waveform, and timer components. It also
+  owns the microphone PCM worklet, browser transcription adapter, and token response.
+  The Eve channel only registers that response at the product route. Its dedicated
+  Gateway key keeps Eve on OIDC; audio is never recorded or persisted.
 - **Activity** projects Eve events into reasoning, tool calls, live Bash output,
   file diffs, and elapsed time.
 - **Session management** includes responsive sidebar navigation, rename, and delete.
@@ -261,7 +262,9 @@ Layer rules:
   must leave unrelated workflows intact.
 - Vendor renderers stay behind `components/code/` or the workspace feature boundary.
   Consumers do not depend on Pierre directly.
-- There are no barrel files. Modules export only what a real consumer uses.
+- There are no application barrel files. An extractable package directory may expose
+  one public `index.ts` plus explicit runtime subpaths such as `server`; its internal
+  imports remain relative so the directory can move unchanged.
 - Split on responsibility, not line count. Extract shared code on its second real
   consumer, not in anticipation of one.
 
