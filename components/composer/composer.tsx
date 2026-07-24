@@ -43,7 +43,7 @@ function SubmitButton({
       size="icon-sm"
       type="submit"
     >
-      <ArrowUp aria-hidden="true" />
+      <ArrowUp aria-hidden="true" className="size-[18px]" />
     </Button>
   );
 }
