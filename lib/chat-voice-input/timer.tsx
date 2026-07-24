@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { useChatVoiceInput } from "./chat-voice-input";
+import { useChatVoiceInput } from "./provider";
 
 export function ChatVoiceInputTimer() {
   const { stream } = useChatVoiceInput();

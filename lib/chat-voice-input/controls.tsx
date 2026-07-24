@@ -1,6 +1,6 @@
 import { LoaderCircle, Mic, Square } from "lucide-react";
 
-import { type ChatVoiceInputStatus, useChatVoiceInput } from "./chat-voice-input";
+import { type ChatVoiceInputStatus, useChatVoiceInput } from "./provider";
 
 const buttonClassName =
   "inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-colors duration-150 outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0";

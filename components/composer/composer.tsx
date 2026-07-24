@@ -2,13 +2,7 @@ import { ArrowUp, Square } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  ChatVoiceInputButton,
-  ChatVoiceInputError,
-  ChatVoiceInputProvider,
-  ChatVoiceInputTimer,
-  ChatVoiceInputWaveform,
-} from "@/lib/chat-voice-input";
+import ChatVoiceInput from "@/lib/chat-voice-input";
 import { useComposerStore } from "@/lib/composer-store";
 
 type ComposerProps = {
@@ -108,12 +102,7 @@ export function Composer({
           value={value}
         />
         <div className="flex min-w-0 items-center justify-end gap-1 pt-1">
-          <ChatVoiceInputProvider disabled={audioDisabled} onValueChange={onChange} value={value}>
-            <ChatVoiceInputError />
-            <ChatVoiceInputWaveform />
-            <ChatVoiceInputTimer />
-            <ChatVoiceInputButton />
-          </ChatVoiceInputProvider>
+          <ChatVoiceInput disabled={audioDisabled} onValueChange={onChange} value={value} />
           <SubmitButton disabled={submitDisabled} isGenerating={isGenerating} onStop={onStop} />
         </div>
       </form>
