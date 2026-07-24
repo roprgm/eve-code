@@ -21,6 +21,17 @@ type SidebarContext = {
   readonly toggleSidebar: () => void;
 };
 
+function WorkspaceToggleIcon({ isOpen }: { readonly isOpen: boolean }) {
+  if (!isOpen) return <PanelRight aria-hidden="true" />;
+
+  return (
+    <>
+      <X aria-hidden="true" className="md:hidden" />
+      <PanelRight aria-hidden="true" className="hidden md:block" />
+    </>
+  );
+}
+
 function WorkspaceToggle({
   isOpen,
   onToggle,
@@ -30,15 +41,7 @@ function WorkspaceToggle({
 }) {
   if (!onToggle) return null;
   const label = isOpen ? "Close files" : "Open files";
-  let icon = <PanelRight aria-hidden="true" />;
-  if (isOpen) {
-    icon = (
-      <>
-        <X aria-hidden="true" className="md:hidden" />
-        <PanelRight aria-hidden="true" className="hidden md:block" />
-      </>
-    );
-  }
+
   return (
     <Button
       aria-controls="workspace-panel"
@@ -48,7 +51,7 @@ function WorkspaceToggle({
       size="icon"
       variant="ghost"
     >
-      {icon}
+      <WorkspaceToggleIcon isOpen={Boolean(isOpen)} />
     </Button>
   );
 }

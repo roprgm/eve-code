@@ -10,6 +10,7 @@ import type { WorkspaceFileRequest } from "@/components/workspace/workspace-navi
 import { getWorkspaceUrl, workspaceFileSchema, workspacePathsSchema } from "@/lib/workspace";
 
 const emptyPaths: string[] = [];
+type WorkspaceFile = z.infer<typeof workspaceFileSchema>;
 
 async function getWorkspace<T>(url: string, schema: z.ZodType<T>): Promise<T> {
   const response = await fetch(url, { cache: "no-store" });
@@ -23,6 +24,50 @@ function PanelMessage({ children }: { readonly children: ReactNode }) {
       {children}
     </p>
   );
+}
+
+function WorkspaceTree({
+  hasPaths,
+  isError,
+  model,
+  paths,
+  sessionId,
+}: {
+  readonly hasPaths: boolean;
+  readonly isError: boolean;
+  readonly model: ReturnType<typeof useWorkspaceTree>["model"];
+  readonly paths: string[];
+  readonly sessionId: string;
+}) {
+  if (!sessionId) return <PanelMessage>No files yet.</PanelMessage>;
+  if (isError && !hasPaths) return <PanelMessage>Couldn’t load files.</PanelMessage>;
+  if (!hasPaths) return <PanelMessage>Loading files…</PanelMessage>;
+  if (paths.length === 0) return <PanelMessage>No files yet.</PanelMessage>;
+  return <FileTree className="workspace-tree" model={model} />;
+}
+
+function WorkspaceViewer({
+  file,
+  isError,
+  selectedPath,
+}: {
+  readonly file?: WorkspaceFile;
+  readonly isError: boolean;
+  readonly selectedPath: string;
+}) {
+  if (!selectedPath) return <PanelMessage>Select a file</PanelMessage>;
+  if (file?.status === "missing") return <PanelMessage>File no longer exists.</PanelMessage>;
+  if (file?.status === "binary") {
+    return <PanelMessage>Binary files can’t be previewed.</PanelMessage>;
+  }
+  if (file?.status === "oversized") {
+    return <PanelMessage>Files larger than 200 KiB can’t be previewed.</PanelMessage>;
+  }
+  if (file?.status === "text") {
+    return <FileViewer contents={file.contents} path={file.path} />;
+  }
+  if (isError) return <PanelMessage>Couldn’t load file.</PanelMessage>;
+  return <PanelMessage>Loading file…</PanelMessage>;
 }
 
 export default function WorkspacePanel({
@@ -54,33 +99,26 @@ export default function WorkspacePanel({
   });
   const file = fileQuery.data?.path === selectedPath ? fileQuery.data : undefined;
 
-  let tree: ReactNode = <PanelMessage>Loading files…</PanelMessage>;
-  if (!sessionId) tree = <PanelMessage>No files yet.</PanelMessage>;
-  if (pathsQuery.isError && !pathsQuery.data)
-    tree = <PanelMessage>Couldn’t load files.</PanelMessage>;
-  if (pathsQuery.data && paths.length === 0) tree = <PanelMessage>No files yet.</PanelMessage>;
-  if (paths.length > 0) {
-    tree = <FileTree className="workspace-tree" model={model} />;
-  }
-
-  let viewer: ReactNode = <PanelMessage>Select a file</PanelMessage>;
-  if (selectedPath) viewer = <PanelMessage>Loading file…</PanelMessage>;
-  if (selectedPath && fileQuery.isError) viewer = <PanelMessage>Couldn’t load file.</PanelMessage>;
-  if (file?.status === "missing") viewer = <PanelMessage>File no longer exists.</PanelMessage>;
-  if (file?.status === "binary")
-    viewer = <PanelMessage>Binary files can’t be previewed.</PanelMessage>;
-  if (file?.status === "oversized")
-    viewer = <PanelMessage>Files larger than 200 KiB can’t be previewed.</PanelMessage>;
-  if (file?.status === "text") viewer = <FileViewer contents={file.contents} path={file.path} />;
-
   return (
     <aside
       aria-label="Workspace files"
       className="min-h-0 w-full md:w-1/2 md:border-l"
       id="workspace-panel"
     >
-      <WorkspaceBrowser model={model} path={selectedPath} tree={tree}>
-        {viewer}
+      <WorkspaceBrowser
+        model={model}
+        path={selectedPath}
+        tree={
+          <WorkspaceTree
+            hasPaths={Boolean(pathsQuery.data)}
+            isError={pathsQuery.isError}
+            model={model}
+            paths={paths}
+            sessionId={sessionId}
+          />
+        }
+      >
+        <WorkspaceViewer file={file} isError={fileQuery.isError} selectedPath={selectedPath} />
       </WorkspaceBrowser>
     </aside>
   );

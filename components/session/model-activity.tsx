@@ -11,15 +11,16 @@ type ModelActivityProps = {
   readonly meta?: ReactNode;
 };
 
-function ActivitySummary({
+export function ModelActivity({
+  children,
   detail,
   elapsed,
   icon: Icon,
   isAnimated,
   label,
   meta,
-}: Omit<ModelActivityProps, "children">) {
-  return (
+}: ModelActivityProps) {
+  const summary = (
     <>
       <Icon aria-hidden="true" className="shrink-0 self-center" />
       <span className="min-w-0 truncate">
@@ -29,27 +30,6 @@ function ActivitySummary({
       {elapsed && <span className="shrink-0 text-sm opacity-60">{elapsed}</span>}
       {meta}
     </>
-  );
-}
-
-export function ModelActivity({
-  children,
-  detail,
-  elapsed,
-  icon,
-  isAnimated,
-  label,
-  meta,
-}: ModelActivityProps) {
-  const summary = (
-    <ActivitySummary
-      detail={detail}
-      elapsed={elapsed}
-      icon={icon}
-      isAnimated={isAnimated}
-      label={label}
-      meta={meta}
-    />
   );
 
   if (!children) {

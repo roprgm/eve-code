@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Download, ExternalLink, LoaderCircle, Play, Power } from "lucide-react";
-import type { ReactNode } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -78,6 +77,23 @@ function PreviewIcon({ action }: { readonly action: PreviewAction }) {
   return <Play aria-hidden="true" />;
 }
 
+function PreviewStopAction({
+  menuId,
+  onStop,
+}: {
+  readonly menuId: string;
+  readonly onStop?: () => void;
+}) {
+  if (!onStop) return null;
+
+  return (
+    <MenuItem className="text-sm text-destructive" onClick={onStop} popoverTarget={menuId}>
+      <Power aria-hidden="true" className="size-3.5" />
+      Stop preview
+    </MenuItem>
+  );
+}
+
 function PreviewControl({
   action,
   disabled,
@@ -103,15 +119,6 @@ function PreviewControl({
   readonly status: VisibleStatus;
   readonly title?: string;
 }) {
-  let stopAction: ReactNode;
-  if (onStop) {
-    stopAction = (
-      <MenuItem className="text-sm text-destructive" onClick={onStop} popoverTarget={menuId}>
-        <Power aria-hidden="true" className="size-3.5" />
-        Stop preview
-      </MenuItem>
-    );
-  }
   return (
     <div className="ml-auto flex">
       <Button
@@ -159,7 +166,7 @@ function PreviewControl({
             <Download aria-hidden="true" className="size-3.5" />
             Download
           </MenuItem>
-          {stopAction}
+          <PreviewStopAction menuId={menuId} onStop={onStop} />
         </div>
       </MenuContent>
     </div>
@@ -243,8 +250,7 @@ export function SandboxControl({ preview, sessionId }: { preview: Preview; sessi
     });
   }
 
-  let stopPreview: (() => void) | undefined;
-  if (status === "running") stopPreview = onStop;
+  const stopPreview = status === "running" ? onStop : undefined;
   const isDownloadDisabled = !sessionId;
 
   return (

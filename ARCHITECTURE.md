@@ -227,7 +227,7 @@ lib/            lowest-level reusable modules and extractable feature packages
                 self-contained voice input package
 components/
   ui/           generic visual primitives
-  composer/     message input, optional controls, and submit composition
+  ai/           reusable chat layout, actions, scrolling, and composition
   code/         Pierre-backed source and diff facades
   session/      conversation, activity, navigation, and preview control
   workspace/    file navigation, tree, queries, and panel

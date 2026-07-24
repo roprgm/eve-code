@@ -56,11 +56,9 @@ export function WorkspaceBrowser({ children, model, path, tree }: WorkspaceBrows
   }
 
   const breadcrumbItems = breadcrumbs.map((breadcrumb, index) => {
-    let separator: ReactNode;
-    if (index > 0) separator = <ChevronRight aria-hidden="true" className="size-3.5" />;
     return (
       <Fragment key={breadcrumb.path}>
-        {separator}
+        {index > 0 && <ChevronRight aria-hidden="true" className="size-3.5" />}
         <button
           className="max-w-48 truncate rounded-sm px-1 py-0.5 text-sm text-muted-foreground outline-none hover:bg-sidebar-selected hover:text-foreground focus-visible:bg-sidebar-selected focus-visible:text-foreground last:text-foreground"
           onClick={() => onOpenPath(breadcrumb.path)}

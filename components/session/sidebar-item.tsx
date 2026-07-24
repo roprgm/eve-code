@@ -1,6 +1,6 @@
 import { useConvexMutation } from "@convex-dev/react-query";
 import { useMutation } from "@tanstack/react-query";
-import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, type SubmitEvent, useEffect, useRef, useState } from "react";
 import { href, Link } from "react-router";
 import { SessionSidebarActions } from "@/components/session/sidebar-actions";
 import type { SessionStatus } from "@/components/session/use-session";
@@ -47,7 +47,7 @@ export function SessionSidebarItem({
     renameSession.mutate({ name, sessionId: session.sessionId });
   }
 
-  function submit(event: FormEvent<HTMLFormElement>): void {
+  function submit(event: SubmitEvent<HTMLFormElement>): void {
     event.preventDefault();
     inputRef.current?.blur();
   }

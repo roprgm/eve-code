@@ -1,9 +1,9 @@
 import { Brain } from "lucide-react";
 
+import { ThreadMessage } from "@/components/ai/thread";
 import { Message } from "@/components/session/message";
 import { ModelActivity } from "@/components/session/model-activity";
 import type { useSession } from "@/components/session/use-session";
-import { MessageScrollerItem } from "@/components/ui/message-scroller";
 
 type ConversationProps = {
   readonly view: ReturnType<typeof useSession>;
@@ -25,11 +25,11 @@ export function Conversation({ view }: ConversationProps) {
         />
       ))}
       {view.activityLabel && (
-        <MessageScrollerItem>
+        <ThreadMessage>
           <div className="pt-3 pb-8">
             <ModelActivity icon={Brain} isAnimated label={view.activityLabel} />
           </div>
-        </MessageScrollerItem>
+        </ThreadMessage>
       )}
     </>
   );
