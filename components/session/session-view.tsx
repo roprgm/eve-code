@@ -3,7 +3,6 @@ import { Activity, lazy, type ReactNode, Suspense, useCallback, useState } from 
 import { CommandLogsProvider } from "@/components/session/command-logs";
 import { Composer } from "@/components/session/composer";
 import { Conversation } from "@/components/session/conversation";
-import { InputRequest } from "@/components/session/input-request";
 import { PageHeader } from "@/components/session/page-header";
 import { type StoredSession, useSession } from "@/components/session/use-session";
 import { Alert } from "@/components/ui/alert";
@@ -33,7 +32,7 @@ export function SessionView({ checkpointEvents, session, sessionId, title }: Ses
     sessionId,
   });
   const preview = getPreview(view.messages, session?.eveSessionId);
-  const hasNotices = Boolean(view.pendingInput || view.error);
+  const hasNotices = Boolean(view.error);
   const isWorkspaceOpen = workspaceState === "open";
   const toggleWorkspace = session?.eveSessionId ? onToggleWorkspace : undefined;
   let conversationClass = "flex min-w-0 flex-1 flex-col";
@@ -93,13 +92,6 @@ export function SessionView({ checkpointEvents, session, sessionId, title }: Ses
                 <Conversation view={view} />
                 {hasNotices && (
                   <MessageScrollerItem>
-                    {view.pendingInput && (
-                      <InputRequest
-                        disabled={view.isGenerating || view.isStopping}
-                        onSelect={view.answerQuestion}
-                        request={view.pendingInput}
-                      />
-                    )}
                     {view.error && (
                       <Alert className="my-4 px-4 py-2" variant="destructive">
                         {view.error}

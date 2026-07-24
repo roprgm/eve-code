@@ -99,6 +99,96 @@ describe("projectEveMessages", () => {
     expect(messages.map(({ id }) => id)).toEqual(["turn_0:user", "turn_1:user"]);
     expect(messages.at(-1)?.createdAt).toBe(20);
   });
+
+  it("keeps submitted input responses on their question", () => {
+    const messages = projectEveMessages(
+      [
+        {
+          event: {
+            data: {
+              requests: [
+                {
+                  action: {
+                    callId: "question-call",
+                    input: {},
+                    kind: "tool-call",
+                    toolName: "ask_question",
+                  },
+                  display: "select",
+                  options: [
+                    { id: "red", label: "Red" },
+                    { id: "blue", label: "Blue" },
+                  ],
+                  prompt: "Pick a color",
+                  requestId: "question-request",
+                },
+              ],
+              sequence: 0,
+              stepIndex: 0,
+              turnId: "turn-question",
+            },
+            type: "input.requested",
+          },
+          index: 0,
+        },
+      ],
+      {
+        createdAt: 20,
+        inputResponses: [{ optionId: "blue", requestId: "question-request" }],
+        startIndex: 1,
+        submissionId: "submission-2",
+      },
+    );
+    const question = messages[0]?.parts.find((part) => part.type === "dynamic-tool");
+    expect(question?.toolMetadata?.eve?.inputResponse).toEqual({
+      optionId: "blue",
+      requestId: "question-request",
+    });
+  });
+
+  it("restores answered questions from their stored response", () => {
+    const messages = projectEveMessages([
+      {
+        event: {
+          data: {
+            requests: [
+              {
+                action: {
+                  callId: "question-call",
+                  input: {},
+                  kind: "tool-call",
+                  toolName: "ask_question",
+                },
+                prompt: "What should it say?",
+                requestId: "question-request",
+              },
+            ],
+            sequence: 0,
+            stepIndex: 0,
+            turnId: "turn-question",
+          },
+          type: "input.requested",
+        },
+        index: 0,
+      },
+      {
+        event: {
+          data: {
+            createdAt: 20,
+            responses: [{ requestId: "question-request", text: "Keep it simple" }],
+          },
+          type: "client.input.responded",
+        },
+        index: 1,
+      },
+    ]);
+    const question = messages[0]?.parts.find((part) => part.type === "dynamic-tool");
+    expect(question?.toolMetadata?.eve?.inputResponse).toEqual({
+      optionId: undefined,
+      requestId: "question-request",
+      text: "Keep it simple",
+    });
+  });
 });
 
 function timedEvent(index: number, at: string | undefined, event: object): StoredEveEvent {

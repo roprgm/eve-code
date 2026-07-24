@@ -8,7 +8,7 @@ import {
 } from "eve/client";
 import { create } from "zustand";
 
-import type { OptimisticMessage, StoredEveEvent } from "@/lib/eve-events";
+import type { OptimisticTurn, StoredEveEvent } from "@/lib/eve-events";
 import { SESSION_ID_HEADER } from "@/lib/identity";
 
 type Connection = {
@@ -25,7 +25,7 @@ export type SessionRuntime = {
   readonly connection: Connection;
   readonly error?: string;
   readonly events: readonly StoredEveEvent[];
-  readonly optimistic?: OptimisticMessage;
+  readonly optimistic?: OptimisticTurn;
 };
 
 type RuntimeStore = {
@@ -33,6 +33,7 @@ type RuntimeStore = {
 };
 
 type SendTurnOptions = {
+  readonly afterSend?: () => Promise<unknown>;
   readonly beforeSend?: Promise<unknown>;
   readonly sessionState?: SessionState;
 };
@@ -80,14 +81,14 @@ function updateRuntime(
   });
 }
 
-function optimisticMessage(
-  input: SendTurnPayload,
-  startIndex: number,
-): OptimisticMessage | undefined {
-  if (typeof input.message !== "string") return;
+function optimisticTurn(input: SendTurnPayload, startIndex: number): OptimisticTurn | undefined {
+  const message = typeof input.message === "string" ? input.message : undefined;
+  const inputResponses = input.inputResponses?.length ? input.inputResponses : undefined;
+  if (message === undefined && inputResponses === undefined) return;
   return {
     createdAt: Date.now(),
-    message: input.message,
+    inputResponses,
+    message,
     startIndex,
     submissionId: crypto.randomUUID(),
   };
@@ -170,6 +171,7 @@ async function runTurn(
   sessionId: string,
   connection: Connection,
   input: SendTurnPayload,
+  afterSend?: () => Promise<unknown>,
   beforeSend?: Promise<unknown>,
 ): Promise<void> {
   if (beforeSend) {
@@ -191,6 +193,13 @@ async function runTurn(
       signal: connection.controller.signal,
     });
     connection.sessionId = stream.sessionId;
+    if (afterSend) {
+      try {
+        await afterSend();
+      } catch {
+        updateRuntime(sessionId, connection, { error: "Could not save this answer." });
+      }
+    }
     if (connection.status === "stopped") {
       await cancelTurn(sessionId, connection);
       connection.controller.abort();
@@ -205,7 +214,7 @@ async function runTurn(
 export function sendTurn(
   sessionId: string,
   input: SendTurnPayload,
-  { beforeSend, sessionState }: SendTurnOptions = {},
+  { afterSend, beforeSend, sessionState }: SendTurnOptions = {},
 ): void {
   const current = getSessionRuntime(sessionId);
   if (current && current.connection.status !== "failed") return;
@@ -215,9 +224,9 @@ export function sendTurn(
   setRuntime(sessionId, {
     connection,
     events: current?.events ?? [],
-    optimistic: optimisticMessage(input, startIndex),
+    optimistic: optimisticTurn(input, startIndex),
   });
-  void runTurn(sessionId, connection, input, beforeSend);
+  void runTurn(sessionId, connection, input, afterSend, beforeSend);
 }
 
 export function followSession(sessionId: string, state: SessionState): void {

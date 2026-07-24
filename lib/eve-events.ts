@@ -1,20 +1,22 @@
 import {
+  type ClientInputRespondedEvent,
   type ClientMessageSubmittedEvent,
   defaultMessageReducer,
   type EveAgentReducerEvent,
   type EveMessage,
-  type HandleMessageStreamEvent,
+  type InputResponse,
 } from "eve/client";
 
-export type OptimisticMessage = {
+export type OptimisticTurn = {
   readonly createdAt: number;
-  readonly message: string;
+  readonly inputResponses?: readonly InputResponse[];
+  readonly message?: string;
   readonly startIndex: number;
   readonly submissionId: string;
 };
 
 export type StoredEveEvent = {
-  readonly event: HandleMessageStreamEvent;
+  readonly event: EveAgentReducerEvent;
   readonly index: number;
 };
 
@@ -45,6 +47,9 @@ export function projectActivityTimings(
   };
 
   for (const { event } of storedEvents) {
+    if (event.type === "client.input.responded") continue;
+    if (event.type === "client.message.failed") continue;
+    if (event.type === "client.message.submitted") continue;
     const timestamp = Date.parse(event.meta?.at ?? "");
     if (!Number.isFinite(timestamp)) continue;
     if (event.type === "step.started") {
@@ -63,7 +68,10 @@ export function projectActivityTimings(
   return timings;
 }
 
-function optimisticEvent(optimistic: OptimisticMessage): EveAgentReducerEvent {
+function optimisticMessageEvent(
+  optimistic: OptimisticTurn,
+): ClientMessageSubmittedEvent | undefined {
+  if (optimistic.message === undefined) return;
   return {
     data: {
       createdAt: optimistic.createdAt,
@@ -74,24 +82,39 @@ function optimisticEvent(optimistic: OptimisticMessage): EveAgentReducerEvent {
   } satisfies ClientMessageSubmittedEvent;
 }
 
+function inputResponseEvent(
+  responses: readonly InputResponse[],
+  createdAt: number,
+): ClientInputRespondedEvent {
+  return {
+    data: { createdAt, responses },
+    type: "client.input.responded",
+  };
+}
+
 export function projectEveMessages(
   storedEvents: readonly StoredEveEvent[],
-  optimistic?: OptimisticMessage,
+  optimistic?: OptimisticTurn,
 ): readonly ProjectedEveMessage[] {
   const startIndex = optimistic?.startIndex ?? Number.POSITIVE_INFINITY;
-  const before = storedEvents
-    .filter((stored) => stored.index < startIndex)
-    .map(({ event }) => event);
-  const after = storedEvents
-    .filter((stored) => stored.index >= startIndex)
-    .map(({ event }) => event);
-  const projected: EveAgentReducerEvent[] = [...before];
-  const received = after.find((event) => event.type === "message.received");
-  if (optimistic && !received) projected.push(optimisticEvent(optimistic));
-  projected.push(...after);
+  const before = storedEvents.filter((stored) => stored.index < startIndex);
+  const after = storedEvents.filter((stored) => stored.index >= startIndex);
+  const projected: EveAgentReducerEvent[] = [];
+  projected.push(...before.map(({ event }) => event));
+
+  const received = after.find(({ event }) => event.type === "message.received");
+  const messageEvent = optimistic && !received ? optimisticMessageEvent(optimistic) : undefined;
+  if (messageEvent) projected.push(messageEvent);
+  if (optimistic?.inputResponses?.length) {
+    projected.push(inputResponseEvent(optimistic.inputResponses, optimistic.createdAt));
+  }
+  projected.push(...after.map(({ event }) => event));
 
   const createdAt = new Map<string, number>();
   for (const { event } of storedEvents) {
+    if (event.type === "client.input.responded") continue;
+    if (event.type === "client.message.failed") continue;
+    if (event.type === "client.message.submitted") continue;
     const timestamp = Date.parse(event.meta?.at ?? "");
     if (!Number.isFinite(timestamp)) continue;
     if (event.type === "turn.started") {
@@ -101,11 +124,11 @@ export function projectEveMessages(
       createdAt.set(`${event.data.turnId}:user`, timestamp);
     }
   }
-  if (optimistic) {
+  if (optimistic?.message !== undefined) {
     createdAt.set(`optimistic:${optimistic.submissionId}:user`, optimistic.createdAt);
   }
-  if (optimistic && received) {
-    createdAt.set(`${received.data.turnId}:user`, optimistic.createdAt);
+  if (optimistic?.message !== undefined && received?.event.type === "message.received") {
+    createdAt.set(`${received.event.data.turnId}:user`, optimistic.createdAt);
   }
 
   const reducer = defaultMessageReducer();

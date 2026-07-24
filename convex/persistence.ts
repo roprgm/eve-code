@@ -5,6 +5,11 @@ import { internalMutation, mutation, type QueryCtx, query } from "./_generated/s
 
 const identity = { eveSessionId: v.string(), sessionId: v.string() };
 const event = v.object({ event: v.any(), index: v.number() });
+const inputResponse = v.object({
+  optionId: v.optional(v.string()),
+  requestId: v.string(),
+  text: v.optional(v.string()),
+});
 const stopRecoveryDelayMs = 20_000;
 
 async function getSession(ctx: Pick<QueryCtx, "db">, sessionId: string, eveSessionId?: string) {
@@ -59,6 +64,38 @@ export const prepareTurn = mutation({
     }
     if (session.status === "stopping") throw new ConvexError("Session is stopping.");
     if (session.status === "error") await ctx.db.patch(session._id, { status: "ready" });
+  },
+});
+
+export const recordInputResponses = mutation({
+  args: {
+    inputResponses: v.array(inputResponse),
+    sessionId: v.string(),
+    streamIndex: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const session = await getSession(ctx, args.sessionId);
+    if (!session || session.streamIndex !== args.streamIndex) {
+      throw new ConvexError("Session changed before the answer was saved.");
+    }
+    const turn = await ctx.db
+      .query("turns")
+      .withIndex("by_session_and_stream_index", (index) => index.eq("sessionId", args.sessionId))
+      .order("desc")
+      .first();
+    if (!turn) throw new ConvexError("Input request was not found.");
+    await ctx.db.patch(turn._id, {
+      events: [
+        ...turn.events,
+        {
+          event: {
+            data: { createdAt: Date.now(), responses: args.inputResponses },
+            type: "client.input.responded",
+          },
+          index: Math.max(0, session.streamIndex - 1),
+        },
+      ],
+    });
   },
 });
 

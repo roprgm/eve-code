@@ -114,6 +114,7 @@ it("keeps an input response active until its checkpoint advances", async () => {
     finishPreparation = resolve;
   });
   const send = vi.fn(async () => response([event("session.waiting")]));
+  const saveAnswer = vi.fn(async () => undefined);
   useSessions(
     createSession({
       send,
@@ -125,6 +126,7 @@ it("keeps an input response active until its checkpoint advances", async () => {
     sessionId,
     { inputResponses: [{ optionId: "red", requestId: "color" }] },
     {
+      afterSend: saveAnswer,
       beforeSend: prepared,
       sessionState: { sessionId: "eve-session-1", streamIndex: 4 },
     },
@@ -136,14 +138,16 @@ it("keeps an input response active until its checkpoint advances", async () => {
     streamIndex: 4,
   };
 
-  expect(runtime?.optimistic).toBeUndefined();
+  expect(runtime?.optimistic?.inputResponses).toEqual([{ optionId: "red", requestId: "color" }]);
   expect(isSessionCheckpointed(ready, runtime)).toBe(false);
   expect(isSessionGenerating(ready, runtime)).toBe(true);
   expect(isSessionCheckpointed({ ...ready, streamIndex: 5 }, runtime)).toBe(true);
   expect(send).not.toHaveBeenCalled();
+  expect(saveAnswer).not.toHaveBeenCalled();
 
   finishPreparation();
   await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+  expect(saveAnswer).toHaveBeenCalledOnce();
 });
 
 it("shows the optimistic message, then stops locally and cancels Eve", async () => {

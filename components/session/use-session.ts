@@ -139,6 +139,7 @@ export function useSession({ checkpointEvents, session, sessionId }: UseSessionO
   }, [checkpointed, connectionCount, cursor, eveSessionId, sessionId, status]);
 
   const prepareTurn = useConvexMutation(api.persistence.prepareTurn);
+  const recordInputResponses = useConvexMutation(api.persistence.recordInputResponses);
   const requestTurnStop = useConvexMutation(api.persistence.requestTurnStop);
 
   const pendingInput = findPendingInput(messages);
@@ -161,7 +162,11 @@ export function useSession({ checkpointEvents, session, sessionId }: UseSessionO
   function send(input: SendTurnPayload): void {
     if (!session) return;
     if (active || !canSend) return;
+    const inputResponses = input.inputResponses?.length ? [...input.inputResponses] : undefined;
     sendTurn(sessionId, input, {
+      afterSend: inputResponses
+        ? () => recordInputResponses({ inputResponses, sessionId, streamIndex: cursor })
+        : undefined,
       beforeSend: prepareTurn({ sessionId, streamIndex: cursor }),
       sessionState: toSessionState(session),
     });
@@ -175,9 +180,9 @@ export function useSession({ checkpointEvents, session, sessionId }: UseSessionO
     send({ inputResponses: [{ requestId: visibleInput.requestId, text: message }] });
   }
 
-  function answerQuestion(optionId: string): void {
-    if (!visibleInput) return;
-    send({ inputResponses: [{ requestId: visibleInput.requestId, optionId }] });
+  function answerQuestion(requestId: string, optionId: string): void {
+    if (visibleInput?.requestId !== requestId) return;
+    send({ inputResponses: [{ requestId, optionId }] });
   }
 
   function stop(): void {

@@ -14,10 +14,13 @@ export function Conversation({ view }: ConversationProps) {
     <>
       {view.messages.map((message) => (
         <Message
+          canAnswer={!view.isGenerating && !view.isStopping}
           createdAt={message.createdAt}
           isActive={view.isGenerating && message.metadata?.status === "streaming"}
           key={message.id}
           message={message}
+          onAnswer={view.answerQuestion}
+          pendingRequestId={view.pendingInput?.requestId}
           timings={view.timings}
         />
       ))}

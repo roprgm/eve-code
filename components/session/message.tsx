@@ -1,6 +1,7 @@
 import type { EveMessage, EveMessagePart } from "eve/client";
 import { Brain } from "lucide-react";
 
+import { InputRequest } from "@/components/session/input-request";
 import MarkdownMessage from "@/components/session/markdown-message";
 import { ModelActivity } from "@/components/session/model-activity";
 import { ToolActivity } from "@/components/session/tool-activity";
@@ -17,7 +18,10 @@ const timeFormatter = new Intl.DateTimeFormat(undefined, {
 });
 
 function isRenderedPart(part: EveMessagePart): boolean {
-  if (part.type === "dynamic-tool") return part.toolName !== "ask_question";
+  if (part.type === "dynamic-tool" && part.toolName === "ask_question") {
+    return part.toolMetadata?.eve?.inputRequest !== undefined;
+  }
+  if (part.type === "dynamic-tool") return true;
   if (part.type === "text" || part.type === "reasoning") return part.text.trim().length > 0;
   return false;
 }
@@ -68,13 +72,24 @@ function ThinkingActivity({ isActive, part, timing }: ThinkingActivityProps) {
 }
 
 type AssistantPartProps = {
+  readonly canAnswer: boolean;
   readonly isActive: boolean;
   readonly message: EveMessage;
+  readonly onAnswer: (requestId: string, optionId: string) => void;
   readonly part: EveMessagePart;
+  readonly pendingRequestId?: string;
   readonly timings: Timings;
 };
 
-function AssistantPart({ isActive, message, part, timings }: AssistantPartProps) {
+function AssistantPart({
+  canAnswer,
+  isActive,
+  message,
+  onAnswer,
+  part,
+  pendingRequestId,
+  timings,
+}: AssistantPartProps) {
   if (part.type === "text") {
     return (
       <MarkdownMessage isAnimating={isActive && part.state === "streaming"} text={part.text} />
@@ -85,6 +100,17 @@ function AssistantPart({ isActive, message, part, timings }: AssistantPartProps)
     return <ThinkingActivity isActive={isActive} part={part} timing={timings.get(key)} />;
   }
   if (part.type === "dynamic-tool") {
+    const inputRequest = part.toolMetadata?.eve?.inputRequest;
+    if (part.toolName === "ask_question" && inputRequest) {
+      return (
+        <InputRequest
+          disabled={!canAnswer || inputRequest.requestId !== pendingRequestId}
+          onSelect={(optionId) => onAnswer(inputRequest.requestId, optionId)}
+          request={inputRequest}
+          response={part.toolMetadata?.eve?.inputResponse}
+        />
+      );
+    }
     const timing = timings.get(getToolTimingKey(part.toolCallId));
     return <ToolActivity isActive={isActive} part={part} timing={timing} />;
   }
@@ -92,13 +118,24 @@ function AssistantPart({ isActive, message, part, timings }: AssistantPartProps)
 }
 
 type MessageProps = {
+  readonly canAnswer: boolean;
   readonly createdAt?: number;
   readonly isActive: boolean;
   readonly message: EveMessage;
+  readonly onAnswer: (requestId: string, optionId: string) => void;
+  readonly pendingRequestId?: string;
   readonly timings: Timings;
 };
 
-export function Message({ createdAt, isActive, message, timings }: MessageProps) {
+export function Message({
+  canAnswer,
+  createdAt,
+  isActive,
+  message,
+  onAnswer,
+  pendingRequestId,
+  timings,
+}: MessageProps) {
   const textParts = message.parts.filter((part) => part.type === "text");
   const text = textParts.map((part) => part.text).join("\n\n");
 
@@ -126,10 +163,13 @@ export function Message({ createdAt, isActive, message, timings }: MessageProps)
         <div>
           {parts.map((part, index) => (
             <AssistantPart
+              canAnswer={canAnswer}
               isActive={isActive}
               key={getPartKey(part, index)}
               message={message}
+              onAnswer={onAnswer}
               part={part}
+              pendingRequestId={pendingRequestId}
               timings={timings}
             />
           ))}
