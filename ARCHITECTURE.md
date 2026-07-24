@@ -174,6 +174,8 @@ Here `sessionId` is Eve's durable session ID, not the app's public session ID.
   Its header shows the selected GitHub repository when the workspace has one.
   The read-only workspace contains breadcrumbs, a keyboard-accessible tree, and a
   highlighted source viewer. File tool activity can open the corresponding file.
+- **Composer** composes text input, the self-contained Chat Voice Input package, and
+  submit as independent controls. Audio is never recorded or persisted.
 - **Activity** projects Eve events into reasoning, tool calls, live Bash output,
   file diffs, and elapsed time.
 - **Session management** includes responsive sidebar navigation, rename, and delete.
@@ -220,9 +222,12 @@ agent/          Eve agent and its server-side adapters
   skills/       optional stack recipes
   tools/        narrow additions to Eve's built-in tool set
 convex/         schema, session operations, and checkpoint persistence
-lib/            lowest-level non-component modules and runtime/vendor adapters
+lib/            lowest-level reusable modules and extractable feature packages
+  chat-voice-input/
+                self-contained voice input package
 components/
   ui/           generic visual primitives
+  composer/     message input, optional controls, and submit composition
   code/         Pierre-backed source and diff facades
   session/      conversation, activity, navigation, and preview control
   workspace/    file navigation, tree, queries, and panel
@@ -235,16 +240,23 @@ Layer rules:
 
 - `agent/` imports low-level `lib/` contracts and generated Convex APIs, never UI.
 - `convex/` imports only pure `lib/` modules.
-- `lib/` never imports feature components, `app/`, `agent/`, or `convex/`. A module
-  may be cross-runtime or browser-only, but its dependencies must make that boundary
-  obvious.
+- `lib/` never imports feature components, `app/`, `agent/`, or `convex/`. An
+  extractable feature may own components as long as its directory remains
+  self-contained. Modules may be cross-runtime, browser-only, or server-only, but
+  filenames and dependencies must make those boundaries obvious.
 - External data is validated and normalized at its boundary. Internal consumers
   receive one stable shape instead of repeating defensive parsing.
 - Feature components may import `ui/`, `lib/`, generated Convex APIs, and sibling or
   lower feature facades. `app/` wires them together; nothing imports from `app/`.
+- Parents compose sibling capabilities and own only the coordination between them.
+  Feature components own the behavior named by their boundary and never absorb
+  unrelated sibling actions. Removing an optional feature at its composition site
+  must leave unrelated workflows intact.
 - Vendor renderers stay behind `components/code/` or the workspace feature boundary.
   Consumers do not depend on Pierre directly.
-- There are no barrel files. Modules export only what a real consumer uses.
+- There are no application barrel files. An extractable package directory may expose
+  one public `index.ts` plus explicit runtime subpaths such as `server`; its internal
+  imports remain relative so the directory can move unchanged.
 - Split on responsibility, not line count. Extract shared code on its second real
   consumer, not in anticipation of one.
 

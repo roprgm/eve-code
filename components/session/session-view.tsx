@@ -1,7 +1,7 @@
 import { Activity, lazy, type ReactNode, Suspense, useCallback, useState } from "react";
 
+import { Composer } from "@/components/composer/composer";
 import { CommandLogsProvider } from "@/components/session/command-logs";
-import { Composer } from "@/components/session/composer";
 import { Conversation } from "@/components/session/conversation";
 import { PageHeader } from "@/components/session/page-header";
 import { type StoredSession, useSession } from "@/components/session/use-session";
