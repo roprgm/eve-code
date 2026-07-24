@@ -136,6 +136,9 @@ tracked in [docs/eve-improvements.md](./docs/eve-improvements.md).
 - Eve can still fail to emit a boundary after cancellation. Stop records a durable
   `stopping` state; Convex releases it as an error after 20 seconds unless a normal
   checkpoint settles it first. An explicit retry clears that error before Eve starts.
+- Eve does not include submitted HITL responses in its durable stream. Before resuming,
+  the browser appends Eve's `client.input.responded` projection event to the existing
+  Convex turn checkpoint so answered questions survive navigation and reload.
 - The built-in Bash result arrives after completion. The workspace channel follows
   the active Vercel command's log stream so the conversation can render output while
   it runs.
